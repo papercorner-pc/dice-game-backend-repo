@@ -10,7 +10,7 @@ class UserGameJoin extends Model
     use HasFactory;
 
 
-    protected $fillable = ['user_id', 'game_id'];
+    protected $fillable = ['user_id', 'game_id', 'joined_amount'];
 
     public function user()
     {

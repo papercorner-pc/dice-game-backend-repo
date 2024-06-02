@@ -7,6 +7,7 @@ use App\Models\User;
 use Dotenv\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use function Illuminate\Foundation\Configuration\respond;
 
@@ -127,4 +128,17 @@ class AuthController extends Controller
         return response()->json(['token' => $token], 200);
     }
 
+
+
+    public function logout(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 401);
+        }
+
+        $user->currentAccessToken()->delete();
+        return response()->json(['message' => 'Successfully logged out'], 200);
+    }
 }
