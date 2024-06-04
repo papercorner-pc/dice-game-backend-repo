@@ -11,6 +11,9 @@ Route::post('user/register', [AuthController::class,'createAccount']);
 Route::post('user/login', [AuthController::class,'login']);
 Route::post('otp_verify', [AuthController::class,'verifyOTP']);
 
+Route::get('/login', function() {
+    return response()->json(['message' => 'Please log in.'], 401);
+})->name('login');
 
 Route::middleware(['superadmin','auth:sanctum'])->group(function () {
     Route::post('admin/create-game', [GameController::class, 'createGame']);

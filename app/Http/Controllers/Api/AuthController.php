@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use function Illuminate\Foundation\Configuration\respond;
 
 class AuthController extends Controller
@@ -90,6 +91,8 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
+
+        Log::info('api hitted');
 
         try {
             $validator = $request->validate([
