@@ -127,8 +127,14 @@ class AuthController extends Controller
             }
         }
 
+        if($user->is_super_admin == 1){
+            $userStatus = 1;
+        }else{
+            $userStatus = 0;
+        }
+
         $token = $user->createToken('AuthToken')->plainTextToken;
-        return response()->json(['token' => $token], 200);
+        return response()->json(['token' => $token, 'is_admin' => $userStatus], 200);
     }
 
 
