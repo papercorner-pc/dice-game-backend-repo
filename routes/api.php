@@ -35,5 +35,11 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::post('/user-logout', [AuthController::class, 'logout']);
 
     Route::get('user/profile',[UserController::class, 'userProfile']);
+    Route::post('user/change-password', [UserController::class, 'changePassword']);
+
+    Route::get('games/search', [GameController::class, 'searchGames']);
+    Route::get('games/filter', [GameController::class, 'filterGames']);
+
+    Route::post('user/edit-profile', [UserController::class, 'editProfile']);
 });
 

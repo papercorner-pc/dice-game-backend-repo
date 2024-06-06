@@ -192,4 +192,45 @@ class GameController extends Controller
     }
 
 
+    public function filterGames(Request $request)
+    {
+        $validatedData = $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+        ]);
+        $query = Game::query();
+        if (isset($validatedData['start_date'])) {
+            $query->whereDate('start_date', '>=', Carbon::parse($validatedData['start_date']));
+        }
+        if (isset($validatedData['end_date'])) {
+            $query->whereDate('start_date', '<=', Carbon::parse($validatedData['end_date']));
+        }
+        $games = $query->get();
+        if ($games->isEmpty()) {
+            return response()->json(['games' => [], 'message' => 'No games found'], 200);
+        }
+        return response()->json(['games' => $games->toArray(), 'message' => 'success'], 200);
+    }
+
+    public function searchGames(Request $request)
+    {
+        $validatedData = $request->validate([
+            'match_name' => 'nullable|string',
+            'min_fee' => 'nullable|numeric',
+        ]);
+        $query = Game::query();
+        if (isset($validatedData['match_name'])) {
+            $query->where('match_name', 'LIKE', '%' . $validatedData['match_name'] . '%');
+        }
+        if (isset($validatedData['min_fee'])) {
+            $query->where('min_fee', $validatedData['min_fee']);
+        }
+        $games = $query->get();
+        if ($games->isEmpty()) {
+            return response()->json(['games' => [], 'message' => 'No games found'], 200);
+        }
+        return response()->json(['games' => $games->toArray(), 'message' => 'success'], 200);
+    }
+
+
 }
