@@ -59,7 +59,8 @@ class GameController extends Controller
         try {
             $data = $request->validate([
                 'game_id' => 'required|exists:games,id',
-                'joined_amount' => 'required'
+                'joined_amount' => 'required',
+                'user_card' => 'required'
             ]);
 
             $game = Game::where('id', $data['game_id'])->first();
@@ -87,7 +88,8 @@ class GameController extends Controller
             $gameJoin = UserGameJoin::create([
                 'user_id' => $user->id,
                 'game_id' => $data['game_id'],
-                'joined_amount' => $data['joined_amount']
+                'joined_amount' => $data['joined_amount'],
+                'user_card' => $data['user_card']
             ]);
 
             if ($gameJoin) {
@@ -111,19 +113,40 @@ class GameController extends Controller
         $validatedData = $request->validate([
             'type' => 'required',
         ]);
+
         $timeZone = 'Asia/Kolkata';
-        $currentTime = Carbon::now($timeZone)->format('H:i:s');
-        $currentDate = Carbon::now($timeZone)->format('Y-m-d');
+        $currentDateTime = Carbon::now($timeZone);
+        $currentTime = $currentDateTime->format('H:i:s');
+        $currentDate = $currentDateTime->format('Y-m-d');
+
+        $userGame = UserGameJoin::where('user_id', $user->id)->get();
+        $userGameLogs = UserGameLog::where('user_id', $user->id)->get();
+        $userGameEarning = $userGameLogs->sum('game_earning');
+
+        $userGameDetails = [
+            'total_joined_game' => $userGame->count(),
+            'total_win' => $userGameLogs->where('game_status', 1)->count(),
+            'total_loss' => $userGameLogs->where('game_status', 0)->count(),
+            'user_name' => $user->name,
+            'total_earning' => $userGameEarning,
+        ];
 
         if ($validatedData['type'] == 'upcoming') {
             $games = Game::withCount('usersInGame')
-                ->whereTime('start_time', '>=', $currentTime)
-                ->whereDate('start_date', '>=', $currentDate)
+                ->where(function ($query) use ($currentDate, $currentTime) {
+                    $query->whereDate('start_date', '>', $currentDate)
+                        ->orWhere(function ($query) use ($currentDate, $currentTime) {
+                            $query->whereDate('start_date', '=', $currentDate)
+                                ->whereTime('start_time', '>', $currentTime);
+                        });
+                })
                 ->get();
+
             if ($games->isEmpty()) {
-                return response()->json(['games' => [], 'message' => 'No upcoming games found'], 200);
+                return response()->json(['games' => [], 'message' => 'No upcoming games found', 'user_details' => $userGameDetails], 200);
             }
-            return response()->json(['games' => $games->toArray(), 'message' => 'success'], 200);
+
+            return response()->json(['games' => $games->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
         }
 
         if ($validatedData['type'] == 'live') {
@@ -132,7 +155,7 @@ class GameController extends Controller
                 ->get();
 
             if ($userGameLogs->isEmpty()) {
-                return response()->json(['games' => [], 'message' => 'No live games found for user'], 200);
+                return response()->json(['games' => [], 'message' => 'No live games found for user', 'user_details' => $userGameDetails], 200);
             }
 
             $games = [];
@@ -144,10 +167,12 @@ class GameController extends Controller
             }
 
             if (empty($games)) {
-                return response()->json(['games' => [], 'message' => 'No live games found for user'], 200);
+                return response()->json(['games' => [], 'message' => 'No live games found for user', 'user_details' => $userGameDetails], 200);
             }
 
-            return response()->json(['games' => array_map(function ($game) { return $game->toArray(); }, $games), 'message' => 'success'], 200);
+            return response()->json(['games' => array_map(function ($game) {
+                return $game->toArray();
+            }, $games), 'message' => 'success', 'user_details' => $userGameDetails], 200);
         }
 
         if ($validatedData['type'] == 'completed') {
@@ -156,7 +181,7 @@ class GameController extends Controller
                 ->get();
 
             if ($userGameLogs->isEmpty()) {
-                return response()->json(['games' => [], 'message' => 'No completed games found for user'], 200);
+                return response()->json(['games' => [], 'message' => 'No completed games found for user', 'user_details' => $userGameDetails], 200);
             }
 
             $games = [];
@@ -168,18 +193,22 @@ class GameController extends Controller
             }
 
             if (empty($games)) {
-                return response()->json(['games' => [], 'message' => 'No completed games found for user'], 200);
+                return response()->json(['games' => [], 'message' => 'No completed games found for user', 'user_details' => $userGameDetails], 200);
             }
 
-            return response()->json(['games' => array_map(function ($game) { return $game->toArray(); }, $games), 'message' => 'success'], 200);
+            return response()->json(['games' => array_map(function ($game) {
+                return $game->toArray();
+            }, $games), 'message' => 'success', 'user_details' => $userGameDetails], 200);
         }
 
-        return response()->json(['message' => 'Invalid request type'], 400);
+        return response()->json(['message' => 'Invalid request type', 'user_details' => $userGameDetails], 400);
     }
 
 
 
-    public function gameDetail(Request $request){
+
+public function gameDetail(Request $request)
+{
         $gameId = $request->game_id;
         if($gameId){
             $game = Game::where('id', $gameId)->first();
@@ -230,6 +259,36 @@ class GameController extends Controller
             return response()->json(['games' => [], 'message' => 'No games found'], 200);
         }
         return response()->json(['games' => $games->toArray(), 'message' => 'success'], 200);
+    }
+
+
+    public function userGameList(Request $request)
+    {
+        $validatedData = $request->validate([
+            'game_id' => 'required'
+        ]);
+
+        $usersJoinedGames = UserGameJoin::with(['user', 'userGameLogs'])
+            ->where('game_id', $validatedData['game_id'])
+            ->get();
+
+        if ($usersJoinedGames->isEmpty()) {
+            return response()->json(['message' => 'No users found for this game'], 200);
+        }
+
+        $userDetails = $usersJoinedGames->map(function ($usersJoinedGame) {
+            $user = $usersJoinedGame->user;
+            $userGameLogs = $usersJoinedGame->userGameLogs;
+
+            return [
+                'user_name' => $user->name,
+                'user_email' => $user->phone_number,
+                'user_investment' => $usersJoinedGame->joined_amount,
+                'game_earning' => $userGameLogs->sum('game_earning'),
+            ];
+        });
+
+        return response()->json(['users' => $userDetails->toArray(), 'message' => 'success'], 200);
     }
 
 

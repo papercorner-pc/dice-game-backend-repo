@@ -17,6 +17,8 @@ Route::get('/login', function() {
 
 Route::middleware(['superadmin','auth:sanctum'])->group(function () {
     Route::post('admin/create-game', [GameController::class, 'createGame']);
+    Route::post('game/joined-users', [GameController::class, 'userGameList']);
+
 });
 
 

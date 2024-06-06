@@ -10,7 +10,7 @@ class UserGameJoin extends Model
     use HasFactory;
 
 
-    protected $fillable = ['user_id', 'game_id', 'joined_amount'];
+    protected $fillable = ['user_id', 'game_id', 'joined_amount', 'user_card'];
 
     public function user()
     {
@@ -20,6 +20,11 @@ class UserGameJoin extends Model
     public function game()
     {
         return $this->belongsTo(Game::class);
+    }
+
+    public function userGameLogs()
+    {
+        return $this->hasMany(UserGameLog::class, 'user_id', 'user_id');
     }
 
 }
