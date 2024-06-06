@@ -101,7 +101,6 @@ class GameController extends Controller
         }
     }
 
-
     public function gameList(Request $request)
     {
         $user = Auth::user();
@@ -109,20 +108,21 @@ class GameController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        // Validate the request type
         $validatedData = $request->validate([
             'type' => 'required',
         ]);
-
-        $date = Carbon::now();
+        $timeZone = 'Asia/Kolkata';
+        $currentTime = Carbon::now($timeZone)->format('H:i:s');
+        $currentDate = Carbon::now($timeZone)->format('Y-m-d');
 
         if ($validatedData['type'] == 'upcoming') {
-            $games = Game::where('start_date', '>=', $date)->get();
-
+            $games = Game::withCount('usersInGame')
+                ->whereTime('start_time', '>=', $currentTime)
+                ->whereDate('start_date', '>=', $currentDate)
+                ->get();
             if ($games->isEmpty()) {
                 return response()->json(['games' => [], 'message' => 'No upcoming games found'], 200);
             }
-
             return response()->json(['games' => $games->toArray(), 'message' => 'success'], 200);
         }
 
@@ -137,7 +137,7 @@ class GameController extends Controller
 
             $games = [];
             foreach ($userGameLogs as $userGameLog) {
-                $game = Game::where('id', $userGameLog->game_id)->first();
+                $game = Game::withCount('usersInGame')->where('id', $userGameLog->game_id)->first();
                 if ($game) {
                     $games[] = $game;
                 }
@@ -161,7 +161,7 @@ class GameController extends Controller
 
             $games = [];
             foreach ($userGameLogs as $userGameLog) {
-                $game = Game::where('id', $userGameLog->game_id)->first();
+                $game = Game::withCount('usersInGame')->where('id', $userGameLog->game_id)->first();
                 if ($game) {
                     $games[] = $game;
                 }

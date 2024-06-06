@@ -24,4 +24,9 @@ class Game extends Model
         'entry_limit',
         'result_mode'
     ];
+
+
+    public function usersInGame(){
+        return $this->hasMany(UserGameJoin::class);
+    }
 }

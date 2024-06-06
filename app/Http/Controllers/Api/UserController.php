@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 class UserController extends Controller
 {
 
-    // Method to recharge the user's wallet
     public function rechargeUserWallet(Request $request)
     {
         $user = Auth::user();
@@ -49,6 +48,27 @@ class UserController extends Controller
         }
         $transactions = $user->transactions;
         return response()->json(['transactions' => $transactions], 200);
+    }
+
+
+    public function userProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $userProfile = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email ?? 'N/A',
+            'phone_number' => $user->phone_number,
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+        ];
+
+        return response()->json(['user' => $userProfile, 'message' => 'success'], 200);
     }
 
 

@@ -12,7 +12,7 @@ Route::post('user/login', [AuthController::class,'login']);
 Route::post('otp_verify', [AuthController::class,'verifyOTP']);
 
 Route::get('/login', function() {
-    return response()->json(['message' => 'Please log in.'], 401);
+    return response()->json(['message' => 'Please log in'], 401);
 })->name('login');
 
 Route::middleware(['superadmin','auth:sanctum'])->group(function () {
@@ -32,7 +32,8 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::post('/user-wallet/recharge', [UserController::class, 'rechargeUserWallet']);
     Route::post('/user-wallet/debit', [UserController::class, 'debitUserWallet']);
     Route::get('/user-wallet/history', [UserController::class, 'walletHistory']);
-
     Route::post('/user-logout', [AuthController::class, 'logout']);
+
+    Route::get('user/profile',[UserController::class, 'userProfile']);
 });
 
