@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminEarningLog;
 use App\Models\Game;
 use App\Models\UserGameJoin;
 use App\Models\UserGameLog;
@@ -276,20 +277,105 @@ public function gameDetail(Request $request)
             return response()->json(['message' => 'No users found for this game'], 200);
         }
 
+        $adminEarnings = AdminEarningLog::where('game_id', $validatedData['game_id'])->get();
+
         $userDetails = $usersJoinedGames->map(function ($usersJoinedGame) {
             $user = $usersJoinedGame->user;
             $userGameLogs = $usersJoinedGame->userGameLogs;
 
             return [
+                'user_id' => $user->id,
                 'user_name' => $user->name,
-                'user_email' => $user->phone_number,
+                'user_profile' => 'https://fastly.picsum.photos/id/22/367/267.jpg?hmac=YbcBwpRX0XOz9EWoQod59ulBNUEf18kkyqFq0Mikv6c',
+                'user_phone' => $user->phone_number,
                 'user_investment' => $usersJoinedGame->joined_amount,
                 'game_earning' => $userGameLogs->sum('game_earning'),
             ];
+
         });
 
-        return response()->json(['users' => $userDetails->toArray(), 'message' => 'success'], 200);
+        return response()->json(['users' => $userDetails->toArray(), 'admin_earnings' => $adminEarnings, 'message' => 'success'], 200);
     }
 
+    public function announceResult(Request $request)
+    {
+        $validatedData = $request->validate([
+            'game_id' => 'required|integer',
+            'dice_1' => 'required|integer',
+            'dice_2' => 'required|integer',
+            'dice_3' => 'required|integer',
+        ]);
+
+        $user = Auth::user();
+
+        $game = Game::find($validatedData['game_id']);
+        if (!$game) {
+            return response()->json(['message' => 'Game not found'], 404);
+        }
+
+        $existingResult = UserGameLog::where('game_id', $validatedData['game_id'])->exists();
+        if ($existingResult) {
+            return response()->json(['message' => 'Results have already been announced for this game'], 400);
+        }
+
+        $joinedUsers = UserGameJoin::where('game_id', $validatedData['game_id'])->get();
+
+        $totalGameInvestment = 0;
+        $totalResultAmount = 0;
+
+        foreach ($joinedUsers as $joinedUser) {
+            $userGameLog = new UserGameLog();
+            $userCard = $joinedUser->user_card;
+            $investment = $joinedUser->joined_amount;
+            $totalGameInvestment += $investment;
+
+            $matches = 0;
+            $dices = [$validatedData['dice_1'], $validatedData['dice_2'], $validatedData['dice_3']];
+
+            foreach ($dices as $dice) {
+                if ($userCard == $dice) {
+                    $matches++;
+                }
+            }
+
+            if ($matches == 3) {
+                $earnings = 3 * $investment + $investment;
+            } elseif ($matches == 2) {
+                $earnings = 2 * $investment + $investment;
+            } elseif ($matches == 1) {
+                $earnings = 1 * $investment + $investment;
+            } else {
+                $earnings = 0;
+            }
+
+            $totalResultAmount += $earnings;
+
+            $userGameLog->user_id = $joinedUser->user_id;
+            $userGameLog->game_id = $validatedData['game_id'];
+            $userGameLog->game_earning = $earnings;
+            $userGameLog->game_status = $matches > 0 ? 1 : 0;
+            $userGameLog->result_dice = json_encode($dices);
+            $userGameLog->save();
+        }
+
+        $adminEarningsOrLoss = $totalGameInvestment - $totalResultAmount;
+
+        $adminLog = new AdminEarningLog();
+        $adminLog->user_id = $user->id;
+        $adminLog->game_id = $validatedData['game_id'];
+        $adminLog->game_investment = $totalGameInvestment;
+
+        if ($adminEarningsOrLoss >= 0) {
+            $adminLog->game_total_earnings = $adminEarningsOrLoss;
+            $adminLog->game_total_loss = 0;
+        } else {
+            $adminLog->game_total_earnings = 0;
+            $adminLog->game_total_loss = abs($adminEarningsOrLoss);
+        }
+
+        $adminLog->save();
+
+        return response()->json(['message' => 'Results announced successfully', 'admin_earnings_or_loss' => $adminEarningsOrLoss], 200);
+    }
 
 }

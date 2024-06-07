@@ -9,6 +9,7 @@ class UserGameLog extends Model
 {
     use HasFactory;
 
+    protected $fillable = ['user_id','game_id', 'game_status', 'game_earning', 'result_dice'];
 
     public function game()
     {
