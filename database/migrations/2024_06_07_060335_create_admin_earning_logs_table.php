@@ -11,12 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('user_game_logs', function (Blueprint $table) {
+        Schema::create('admin_earning_logs', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('game_id');
-            $table->boolean('game_status')->nullable()->default(null)->comment('1 -> Won, 0 -> Loss');
-            $table->decimal('game_earning', 10, 2);
+            $table->double('game_total_earnings')->nullable();
+            $table->double('game_total_loss')->nullable();
+            $table->double('game_investment')->nullable();
             $table->timestamps();
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
@@ -29,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('user_game_logs');
+        Schema::dropIfExists('admin_earning_logs');
     }
 };

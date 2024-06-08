@@ -17,9 +17,9 @@ return new class extends Migration
             $table->unsignedBigInteger('game_id');
             $table->timestamp('joined_at')->useCurrent();
             $table->decimal('joined_amount',10,2);
+            $table->unsignedBigInteger('user_card')->nullable()->comment('0-> Null 1 -> Heart 2 -> Ace  3 -> Claver 4 -> Diamond 5 -> Moon 6-> Flag');
             $table->timestamps();
 
-            // Adding foreign key constraints
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('game_id')->references('id')->on('games')->onDelete('cascade');
         });

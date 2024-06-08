@@ -22,7 +22,7 @@ class CheckSuperAdmin
         }
 
         $user = Auth::user();
-        if ($user->is_superadmin == 1) {
+        if ($user->is_super_admin != 1) {
             return response()->json(['error' => 'You have no permission'], 403);
         }
 
