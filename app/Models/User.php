@@ -52,4 +52,10 @@ class User extends Authenticatable implements Wallet
             'password' => 'hashed',
         ];
     }
+
+
+    public function games()
+    {
+        return $this->belongsToMany(Game::class, 'user_game_joins', 'user_id', 'game_id');
+    }
 }

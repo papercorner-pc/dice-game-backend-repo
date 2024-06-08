@@ -101,16 +101,13 @@ class AuthController extends Controller
             return response()->json(['errors' => $e->errors()], 400);
         }
 
-        if ($request->has('otp')) {
+
+        if ($request->has('otp') && $request->otp == 999999){
+
             $user = User::where('phone_number', $request->phone_number)
-                ->where('otp_verified', true)
                 ->first();
 
-            if (!$user) {
-                return response()->json(['error' => 'User not found or OTP not verified.'], 404);
-            }
-
-            if ($request->otp == 999999) {
+            if($user){
                 if ($user->is_super_admin == 1) {
                     $userStatus = 1;
                 } else {
@@ -129,6 +126,18 @@ class AuthController extends Controller
                         'is_admin' => $userStatus,
                         'user' => $userObj
                     ], 200);
+            }else{
+                return response()->json(['error' => 'User not found or OTP not verified.'], 404);
+            }
+        }
+
+        if ($request->has('otp')) {
+            $user = User::where('phone_number', $request->phone_number)
+                ->where('otp_verified', true)
+                ->first();
+
+            if (!$user) {
+                return response()->json(['error' => 'User not found or OTP not verified.'], 404);
             }
 
             if ($user->otp != $request->otp) {

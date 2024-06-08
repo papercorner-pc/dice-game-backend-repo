@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AdminEarningLog;
 use App\Models\Game;
+use App\Models\GameStatusLog;
 use App\Models\UserGameJoin;
 use App\Models\UserGameLog;
 use App\Models\UserJoinedGame;
@@ -43,7 +44,14 @@ class GameController extends Controller
                 'entry_limit' => $data['entry_limit'],
             ]);
 
+
+
             if ($game) {
+
+                $gameStatus = GameStatusLog::create([
+                    'game_id' => $game->id,
+                    'game_status' => 0
+                ]);
                 return response()->json(['message' => 'New game created successfully'], 200);
             } else {
                 return response()->json(['message' => 'Something went wrong, please try again later'], 500);
@@ -117,8 +125,8 @@ class GameController extends Controller
 
         $timeZone = 'Asia/Kolkata';
         $currentDateTime = Carbon::now($timeZone);
-        $currentTime = $currentDateTime->format('H:i:s');
         $currentDate = $currentDateTime->format('Y-m-d');
+        $currentTime = $currentDateTime->format('H:i:s');
 
         $userGame = UserGameJoin::where('user_id', $user->id)->get();
         $userGameLogs = UserGameLog::where('user_id', $user->id)->get();
@@ -132,7 +140,40 @@ class GameController extends Controller
             'total_earning' => $userGameEarning,
         ];
 
+        if ($user->is_super_admin == 1) {
+            if ($validatedData['type'] == 'upcoming') {
+                $upcomingGames = Game::with('gameLog')
+                    ->whereHas('gameLog', function ($query) {
+                        $query->where('game_status', 0);
+                    })
+                    ->where(function ($query) use ($currentDate, $currentTime) {
+                        $query->whereDate('start_date', '>', $currentDate)
+                            ->orWhere(function ($query) use ($currentDate, $currentTime) {
+                                $query->whereDate('start_date', '=', $currentDate)
+                                    ->whereTime('start_time', '>', $currentTime);
+                            });
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+                return response()->json(['games' => $upcomingGames->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+            }
+
+            if ($validatedData['type'] == 'completed') {
+                $completedGames = Game::with('gameLog')
+                    ->whereHas('gameLog', function ($query) {
+                        $query->where('game_status', 1);
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+                return response()->json(['games' => $completedGames->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+            }
+        }
+
         if ($validatedData['type'] == 'upcoming') {
+            $joinedGameIds = $user->games()->pluck('game_id')->toArray();
+
             $games = Game::withCount('usersInGame')
                 ->where(function ($query) use ($currentDate, $currentTime) {
                     $query->whereDate('start_date', '>', $currentDate)
@@ -141,6 +182,8 @@ class GameController extends Controller
                                 ->whereTime('start_time', '>', $currentTime);
                         });
                 })
+                ->whereNotIn('id', $joinedGameIds)
+                ->orderBy('created_at', 'desc')
                 ->get();
 
             if ($games->isEmpty()) {
@@ -151,29 +194,32 @@ class GameController extends Controller
         }
 
         if ($validatedData['type'] == 'live') {
-            $userGameLogs = UserGameLog::where('user_id', $user->id)
+            $userJoinedGames = UserGameJoin::where('user_id', $user->id)->pluck('game_id');
+
+            $liveGameLogs = UserGameLog::whereIn('game_id', $userJoinedGames)
                 ->whereNull('game_status')
                 ->get();
 
-            if ($userGameLogs->isEmpty()) {
+            $liveGameIds = $userJoinedGames->filter(function ($gameId) {
+                return !UserGameLog::where('game_id', $gameId)
+                    ->whereNotNull('game_status')
+                    ->exists();
+            });
+
+            if ($liveGameIds->isEmpty()) {
                 return response()->json(['games' => [], 'message' => 'No live games found for user', 'user_details' => $userGameDetails], 200);
             }
 
-            $games = [];
-            foreach ($userGameLogs as $userGameLog) {
-                $game = Game::withCount('usersInGame')->where('id', $userGameLog->game_id)->first();
-                if ($game) {
-                    $games[] = $game;
-                }
-            }
+            $games = Game::withCount('usersInGame')
+                ->whereIn('id', $liveGameIds)
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-            if (empty($games)) {
+            if ($games->isEmpty()) {
                 return response()->json(['games' => [], 'message' => 'No live games found for user', 'user_details' => $userGameDetails], 200);
             }
 
-            return response()->json(['games' => array_map(function ($game) {
-                return $game->toArray();
-            }, $games), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+            return response()->json(['games' => $games->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
         }
 
         if ($validatedData['type'] == 'completed') {
@@ -374,6 +420,11 @@ public function gameDetail(Request $request)
         }
 
         $adminLog->save();
+
+        $gameLog = GameStatusLog::where('game_id', $validatedData['game_id'])->first();
+        if ($gameLog) {
+            $gameLog->update(['game_status' => 1]);
+        }
 
         return response()->json(['message' => 'Results announced successfully', 'admin_earnings_or_loss' => $adminEarningsOrLoss], 200);
     }
