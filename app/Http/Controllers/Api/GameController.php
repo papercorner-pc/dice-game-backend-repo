@@ -146,16 +146,8 @@ class GameController extends Controller
                     ->whereHas('gameLog', function ($query) {
                         $query->where('game_status', 0);
                     })
-                    ->where(function ($query) use ($currentDate, $currentTime) {
-                        $query->whereDate('start_date', '>', $currentDate)
-                            ->orWhere(function ($query) use ($currentDate, $currentTime) {
-                                $query->whereDate('start_date', '=', $currentDate)
-                                    ->whereTime('start_time', '>', $currentTime);
-                            });
-                    })
                     ->orderBy('created_at', 'desc')
                     ->get();
-
                 return response()->json(['games' => $upcomingGames->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
             }
 
