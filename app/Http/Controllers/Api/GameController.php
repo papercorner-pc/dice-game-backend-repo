@@ -68,21 +68,19 @@ class GameController extends Controller
         try {
             $data = $request->validate([
                 'game_id' => 'required|exists:games,id',
-                'joined_amount' => 'required',
+                'joined_amount' => 'required|numeric|min:0',
                 'user_card' => 'required'
             ]);
 
-            $game = Game::where('id', $data['game_id'])->first();
+            $game = Game::find($data['game_id']);
             $gameLimit = $game->entry_limit;
-            $totelJoins = 0;
-            $allUserJoinedGames = UserGameJoin::where('game_id', $data['game_id'])->get();
 
-            foreach ($allUserJoinedGames as $allUserJoinedGame) {
-                $totelJoins++;
+            $totalJoins = UserGameJoin::where('game_id', $data['game_id'])->count();
+            if ($totalJoins >= $gameLimit) {
+                return response()->json(['message' => 'Limit exceeds, please join another game.'], 400);
             }
-
-            if ($totelJoins >= $gameLimit) {
-                return response()->json(['message' => 'Limit Exceeds , please join another game'], 400);
+            if ($data['joined_amount'] < $game->min_fee) {
+                return response()->json(['message' => 'Minimum amount ' . $game->min_fee . ' required.'], 400);
             }
 
             $user = Auth::user();
@@ -109,8 +107,11 @@ class GameController extends Controller
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json(['errors' => $e->errors()], 400);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
 
     public function gameList(Request $request)
     {
@@ -164,8 +165,6 @@ class GameController extends Controller
         }
 
         if ($validatedData['type'] == 'upcoming') {
-            $joinedGameIds = $user->games()->pluck('game_id')->toArray();
-
             $games = Game::withCount('usersInGame')
                 ->where(function ($query) use ($currentDate, $currentTime) {
                     $query->whereDate('start_date', '>', $currentDate)
@@ -174,7 +173,6 @@ class GameController extends Controller
                                 ->whereTime('start_time', '>', $currentTime);
                         });
                 })
-                ->whereNotIn('id', $joinedGameIds)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -419,6 +417,52 @@ public function gameDetail(Request $request)
         }
 
         return response()->json(['message' => 'Results announced successfully', 'admin_earnings_or_loss' => $adminEarningsOrLoss], 200);
+    }
+
+
+    public function singleGameDetail(Request $request){
+        try {
+            $user = Auth::user();
+            $game = Game::find($request->game_id);
+
+            if (!$game) {
+                return response()->json(['error' => 'Game not found'], 404);
+            }
+
+            $userGameList = UserGameJoin::where('game_id', $request->game_id)->get();
+            $gameStatus = GameStatusLog::where('game_id', $request->game_id)->first();
+
+            $userEarnings = 0;
+            if ($gameStatus && $gameStatus->game_status == 1) {
+                $userGameLogs = UserGameLog::where('game_id', $request->game_id)
+                    ->where('user_id', $user->id)
+                    ->get();
+
+                foreach ($userGameLogs as $userGameLog) {
+                    $userEarnings += $userGameLog->game_earning;
+                }
+            }
+
+            $userGameListData = [];
+            foreach ($userGameList as $index => $userGame) {
+                $userGameListData[$index + 1] = [
+                    'joined_amount' => $userGame->joined_amount,
+                    'selected_card' => $userGame->user_card,
+                ];
+            }
+
+            return response()->json([
+                'game' => [
+                    'id' => $game->id,
+                    'name' => $game->match_name,
+                ],
+                'userEarnings' => $userEarnings,
+                'userGameList' => $userGameListData
+            ],200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
 }
