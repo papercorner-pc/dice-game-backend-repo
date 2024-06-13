@@ -84,13 +84,13 @@ class GameController extends Controller
             }
 
             $user = Auth::user();
-            $existingJoin = UserGameJoin::where('user_id', $user->id)
+            /*$existingJoin = UserGameJoin::where('user_id', $user->id)
                 ->where('game_id', $data['game_id'])
                 ->first();
 
             if ($existingJoin) {
                 return response()->json(['message' => 'You have already joined this game.'], 400);
-            }
+            }*/
 
             // Create a new game join record
             $gameJoin = UserGameJoin::create([
