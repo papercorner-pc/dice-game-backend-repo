@@ -92,6 +92,7 @@ class GameController extends Controller
                 return response()->json(['message' => 'You have already joined this game.'], 400);
             }
 
+            // Create a new game join record
             $gameJoin = UserGameJoin::create([
                 'user_id' => $user->id,
                 'game_id' => $data['game_id'],
@@ -143,7 +144,7 @@ class GameController extends Controller
 
         if ($user->is_super_admin == 1) {
             if ($validatedData['type'] == 'upcoming') {
-                $upcomingGames = Game::with('gameLog')
+                $upcomingGames = Game::withCount('usersInGame')->with('gameLog')
                     ->whereHas('gameLog', function ($query) {
                         $query->where('game_status', 0);
                     })
