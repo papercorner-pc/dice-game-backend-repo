@@ -8,7 +8,6 @@ use App\Models\Game;
 use App\Models\GameStatusLog;
 use App\Models\UserGameJoin;
 use App\Models\UserGameLog;
-use App\Models\UserJoinedGame;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -326,6 +325,7 @@ public function gameDetail(Request $request)
                 'user_profile' => 'https://fastly.picsum.photos/id/22/367/267.jpg?hmac=YbcBwpRX0XOz9EWoQod59ulBNUEf18kkyqFq0Mikv6c',
                 'user_phone' => $user->phone_number,
                 'user_investment' => $usersJoinedGame->joined_amount,
+                'user_card' => $usersJoinedGame->user_card,
                 'game_earning' => $userGameLogs->sum('game_earning'),
             ];
 
@@ -446,7 +446,8 @@ public function gameDetail(Request $request)
 
             $userGameListData = [];
             foreach ($userGameList as $index => $userGame) {
-                $userGameListData[$index + 1] = [
+                $userGameListData[] = [
+                    'id' => $index + 1,
                     'joined_amount' => $userGame->joined_amount,
                     'selected_card' => $userGame->user_card,
                 ];
@@ -459,7 +460,7 @@ public function gameDetail(Request $request)
                 ],
                 'userEarnings' => $userEarnings,
                 'userGameList' => $userGameListData
-            ],200);
+            ], 200);
 
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
