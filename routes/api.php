@@ -30,18 +30,16 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::post('games/join', [GameController::class, 'joinGame']);
     Route::post('game/list', [GameController::class, 'gameList']);
     Route::post('game/detail', [GameController::class, 'gameDetail']);
-
     Route::post('/user-wallet/recharge', [UserController::class, 'rechargeUserWallet']);
     Route::post('/user-wallet/debit', [UserController::class, 'debitUserWallet']);
     Route::get('/user-wallet/history', [UserController::class, 'walletHistory']);
     Route::post('/user-logout', [AuthController::class, 'logout']);
-
     Route::get('user/profile',[UserController::class, 'userProfile']);
     Route::post('user/change-password', [UserController::class, 'changePassword']);
-
     Route::get('games/search', [GameController::class, 'searchGames']);
     Route::get('games/filter', [GameController::class, 'filterGames']);
-
     Route::post('user/edit-profile', [UserController::class, 'editProfile']);
+
+    Route::post('single/game-list',[GameController::class, 'singleGameDetail']);
 });
 
