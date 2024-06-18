@@ -22,9 +22,14 @@ class UserGameJoin extends Model
         return $this->belongsTo(Game::class);
     }
 
-    public function userGameLogs()
+   /* public function userGameLogs()
     {
         return $this->hasMany(UserGameLog::class, 'user_id', 'user_id');
+    }*/
+
+    public function userGameLogs()
+    {
+        return $this->hasMany(UserGameLog::class, 'game_join_id', 'id');
     }
 
 }

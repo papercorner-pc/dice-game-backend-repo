@@ -392,6 +392,7 @@ public function gameDetail(Request $request)
             $userGameLog->game_earning = $earnings;
             $userGameLog->game_status = $matches > 0 ? 1 : 0;
             $userGameLog->result_dice = json_encode($dices);
+            $userGameLog->game_join_id = $joinedUser->id;
             $userGameLog->save();
         }
 
@@ -421,7 +422,8 @@ public function gameDetail(Request $request)
     }
 
 
-    public function singleGameDetail(Request $request){
+    public function singleGameDetail(Request $request)
+    {
         try {
             $user = Auth::user();
             $game = Game::find($request->game_id);
@@ -430,7 +432,9 @@ public function gameDetail(Request $request)
                 return response()->json(['error' => 'Game not found'], 404);
             }
 
-            $userGameList = UserGameJoin::where('game_id', $request->game_id)->get();
+            $userGameList = UserGameJoin::where('game_id', $request->game_id)
+                ->with('userGameLogs') // Load the related userGameLogs
+                ->get();
             $gameStatus = GameStatusLog::where('game_id', $request->game_id)->first();
 
             $userEarnings = 0;
@@ -445,12 +449,15 @@ public function gameDetail(Request $request)
             }
 
             $userGameListData = [];
-            foreach ($userGameList as $index => $userGame) {
-                $userGameListData[] = [
-                    'id' => $index + 1,
-                    'joined_amount' => $userGame->joined_amount,
-                    'selected_card' => $userGame->user_card,
-                ];
+            foreach ($userGameList as $userGame) {
+                foreach ($userGame->userGameLogs as $userGameLog) {
+                    $userGameListData[] = [
+                        'id' => $userGame->id, 
+                        'joined_amount' => $userGame->joined_amount,
+                        'selected_card' => $userGame->user_card,
+                        'game_earning' => $userGameLog->game_earning
+                    ];
+                }
             }
 
             return response()->json([

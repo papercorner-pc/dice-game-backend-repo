@@ -48,7 +48,8 @@ class UserController extends Controller
             return response()->json(['message' => 'User not found'], 401);
         }
         $transactions = $user->transactions;
-        return response()->json(['transactions' => $transactions], 200);
+        $balance = $user->balance;
+        return response()->json(['transactions' => $transactions, 'balance' => $balance], 200);
     }
 
 

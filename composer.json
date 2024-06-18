@@ -9,7 +9,9 @@
         "bavix/laravel-wallet": "^11.0",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.9"
+        "laravel/tinker": "^2.9",
+        "ext-curl": "*",
+        "ext-json": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
