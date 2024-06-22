@@ -23,12 +23,12 @@ class AuthController extends Controller
     {
         try {
             $registrationData = $request->validate([
-                'name' => 'required|string|max:255',
+                'name' => 'required',
                 'phone_number' => 'required|string|unique:users,phone_number',
-                'password' => 'required|string|min:6',
+                'password' => 'required',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 400);
+            return response()->json(['error' => 'Phone number already taken, please try different'], 400);
         }
 
         $otp = mt_rand(100000, 999999);

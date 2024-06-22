@@ -44,7 +44,6 @@ class GameController extends Controller
             ]);
 
 
-
             if ($game) {
 
                 $gameStatus = GameStatusLog::create([
@@ -165,7 +164,11 @@ class GameController extends Controller
         }
 
         if ($validatedData['type'] == 'upcoming') {
-            $games = Game::withCount('usersInGame')
+            $games = Game::with(['gameLog'])
+                ->withCount('usersInGame')
+                ->whereHas('gameLog', function ($query) {
+                    $query->where('game_status', 0);
+                })
                 ->where(function ($query) use ($currentDate, $currentTime) {
                     $query->whereDate('start_date', '>', $currentDate)
                         ->orWhere(function ($query) use ($currentDate, $currentTime) {
@@ -221,38 +224,32 @@ class GameController extends Controller
                 return response()->json(['games' => [], 'message' => 'No completed games found for user', 'user_details' => $userGameDetails], 200);
             }
 
-            $games = [];
-            foreach ($userGameLogs as $userGameLog) {
-                $game = Game::withCount('usersInGame')->where('id', $userGameLog->game_id)->first();
-                if ($game) {
-                    $games[] = $game;
-                }
-            }
+            $gameIds = $userGameLogs->pluck('game_id')->unique();
 
-            if (empty($games)) {
+            $games = Game::withCount('usersInGame')
+                ->whereIn('id', $gameIds)
+                ->get();
+
+            if ($games->isEmpty()) {
                 return response()->json(['games' => [], 'message' => 'No completed games found for user', 'user_details' => $userGameDetails], 200);
             }
 
-            return response()->json(['games' => array_map(function ($game) {
-                return $game->toArray();
-            }, $games), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+            return response()->json(['games' => $games->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
         }
 
         return response()->json(['message' => 'Invalid request type', 'user_details' => $userGameDetails], 400);
     }
 
 
-
-
-public function gameDetail(Request $request)
-{
+    public function gameDetail(Request $request)
+    {
         $gameId = $request->game_id;
-        if($gameId){
+        if ($gameId) {
             $game = Game::where('id', $gameId)->first();
-            if($game){
-                return response()->json(['game' => $game->toArray(), 'message' => 'success'],200);
-            }else{
-                return response()->json(['game' => [], 'message' => 'error'],401);
+            if ($game) {
+                return response()->json(['game' => $game->toArray(), 'message' => 'success'], 200);
+            } else {
+                return response()->json(['game' => [], 'message' => 'error'], 401);
             }
         }
     }
@@ -448,14 +445,24 @@ public function gameDetail(Request $request)
                 }
             }
 
+            // Prepare the list data
             $userGameListData = [];
             foreach ($userGameList as $userGame) {
-                foreach ($userGame->userGameLogs as $userGameLog) {
+                if ($userGame->userGameLogs->isNotEmpty()) {
+                    foreach ($userGame->userGameLogs as $userGameLog) {
+                        $userGameListData[] = [
+                            'id' => $userGame->id,
+                            'joined_amount' => $userGame->joined_amount,
+                            'selected_card' => $userGame->user_card,
+                            'game_earning' => $userGameLog->game_earning,
+                        ];
+                    }
+                } else {
                     $userGameListData[] = [
-                        'id' => $userGame->id, 
+                        'id' => $userGame->id,
                         'joined_amount' => $userGame->joined_amount,
                         'selected_card' => $userGame->user_card,
-                        'game_earning' => $userGameLog->game_earning
+                        'game_earning' => 0,
                     ];
                 }
             }

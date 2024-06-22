@@ -6,12 +6,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ext-curl": "*",
+        "ext-json": "*",
         "bavix/laravel-wallet": "^11.0",
+        "get-stream/stream-chat": "^3.4",
+        "google/apiclient": "^2.16",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.9",
-        "ext-curl": "*",
-        "ext-json": "*"
+        "laravel/tinker": "^2.9"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

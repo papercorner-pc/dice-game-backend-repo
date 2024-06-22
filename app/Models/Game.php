@@ -36,8 +36,7 @@ class Game extends Model
         return $this->belongsToMany(User::class, 'user_game_joins', 'game_id', 'user_id');
     }
 
-    public function gameLog(){
-        return $this->hasOne(GameStatusLog::class);
-
+    public function gameLog() {
+        return $this->hasOne(GameStatusLog::class, 'game_id', 'id');
     }
 }
