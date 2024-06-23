@@ -11,6 +11,7 @@ use App\Models\UserGameLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Mockery\Exception;
 use function Monolog\error;
 
@@ -152,7 +153,7 @@ class GameController extends Controller
             }
 
             if ($validatedData['type'] == 'completed') {
-                $completedGames = Game::with('gameLog')
+                $completedGames = Game::withCount('usersInGame')->with('gameLog')
                     ->whereHas('gameLog', function ($query) {
                         $query->where('game_status', 1);
                     })
@@ -316,10 +317,12 @@ class GameController extends Controller
             $user = $usersJoinedGame->user;
             $userGameLogs = $usersJoinedGame->userGameLogs;
 
+            $userAddress = $user->address;
+
             return [
                 'user_id' => $user->id,
                 'user_name' => $user->name,
-                'user_profile' => 'https://fastly.picsum.photos/id/22/367/267.jpg?hmac=YbcBwpRX0XOz9EWoQod59ulBNUEf18kkyqFq0Mikv6c',
+                'user_profile' => $userAddress ? Storage::url($userAddress->profile_image) : null,
                 'user_phone' => $user->phone_number,
                 'user_investment' => $usersJoinedGame->joined_amount,
                 'user_card' => $usersJoinedGame->user_card,
