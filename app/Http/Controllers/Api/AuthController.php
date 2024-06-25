@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\TwilioService;
 use Dotenv\Validator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -15,6 +16,13 @@ use function Illuminate\Foundation\Configuration\respond;
 class AuthController extends Controller
 {
 
+
+    protected $twilioService;
+
+    public function __construct(TwilioService $twilioService)
+    {
+        $this->twilioService = $twilioService;
+    }
     /**
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -23,12 +31,12 @@ class AuthController extends Controller
     {
         try {
             $registrationData = $request->validate([
-                'name' => 'required|string|max:255',
+                'name' => 'required',
                 'phone_number' => 'required|string|unique:users,phone_number',
-                'password' => 'required|string|min:6',
+                'password' => 'required',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['errors' => $e->errors()], 400);
+            return response()->json(['error' => 'Phone number already taken, please try different'], 400);
         }
 
         $otp = mt_rand(100000, 999999);
@@ -43,9 +51,10 @@ class AuthController extends Controller
             'otp_verified' => false,
         ]);
 
+        $message = 'Your otp is '.$otp.' please verify ';
+        $this->twilioService->sendSms($user->phone_number, $message);
         return response()->json(['message' => 'Account created successfully.'], 201);
     }
-
 
     /**
      * @param Request $request
@@ -94,7 +103,13 @@ class AuthController extends Controller
         $user->otp_verified = true;
         $user->save();
 
-        return response()->json(['message' => 'OTP verified successfully.'], 200);
+        $token = $user->createToken('AuthToken')->plainTextToken;
+        $userObj = [
+            'user_name' => $user->name,
+            'user_phone' => $user->phone_number
+        ];
+        return response()->json(['message' => 'OTP verified successfully.', 'token' => $token, 'is_admin' => 0, 'user' => $userObj
+        ], 200);
     }
 
 

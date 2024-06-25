@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\SmsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('user/register', [AuthController::class,'createAccount']);
 Route::post('user/login', [AuthController::class,'login']);
 Route::post('otp_verify', [AuthController::class,'verifyOTP']);
+Route::post('/send-sms', [SmsController::class, 'sendSms']);
 
 Route::get('/login', function() {
     return response()->json(['message' => 'Please log in'], 401);
@@ -20,7 +22,6 @@ Route::middleware(['superadmin','auth:sanctum'])->group(function () {
     Route::post('game/joined-users', [GameController::class, 'userGameList']);
     Route::post('result/announce', [GameController::class, 'announceResult']);
 });
-
 
 Route::middleware(['auth:sanctum'])->group(function (){
     Route::get('/users', function (Request $request){
@@ -39,7 +40,9 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::get('games/search', [GameController::class, 'searchGames']);
     Route::get('games/filter', [GameController::class, 'filterGames']);
     Route::post('user/edit-profile', [UserController::class, 'editProfile']);
-
     Route::post('single/game-list',[GameController::class, 'singleGameDetail']);
+    Route::post('update/profile-image', [UserController::class, 'updateProfile']);
+
 });
+
 
