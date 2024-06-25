@@ -6,8 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminEarningLog;
 use App\Models\Game;
 use App\Models\GameStatusLog;
+use App\Models\User;
 use App\Models\UserGameJoin;
 use App\Models\UserGameLog;
+use App\Services\CustomFcmPushService;
+use App\Services\SendNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -45,12 +48,29 @@ class GameController extends Controller
             ]);
 
 
+            $tempAgentTokenData = [];
+            $gameUsers = User::all();
+            foreach ($gameUsers as $gameUser){
+                if($gameUser->fcm_token){
+                    $tempAgentTokenData['device_token'] = $gameUser->fcm_token;
+                }
+            }
+
             if ($game) {
 
                 $gameStatus = GameStatusLog::create([
                     'game_id' => $game->id,
                     'game_status' => 0
                 ]);
+
+                $notificationConfigs = [
+                    'title' => 'Created new game',
+                    'body' => 'Check All Details For This Request In App',
+                    'soundPlay' => true,
+                    'show_in_foreground' => true,
+                ];
+                $fcmServiceObj = new SendNotification();
+                $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
                 return response()->json(['message' => 'New game created successfully'], 200);
             } else {
                 return response()->json(['message' => 'Something went wrong, please try again later'], 500);
