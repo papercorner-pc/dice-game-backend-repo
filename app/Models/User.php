@@ -26,8 +26,8 @@ class User extends Authenticatable implements Wallet
         'otp',
         'otp_verified',
         'otp_valid_till',
-        'is_super_admin'
-
+        'is_super_admin',
+        'fcm_token'
     ];
 
     /**
