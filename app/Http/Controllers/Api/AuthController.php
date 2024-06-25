@@ -49,6 +49,7 @@ class AuthController extends Controller
             'otp' => $otp,
             'otp_valid_till' => $otpValidTill,
             'otp_verified' => false,
+            'fcm_token' => $request->device_token ?? null
         ]);
 
         $message = 'Your otp is '.$otp.' please verify ';
@@ -101,6 +102,7 @@ class AuthController extends Controller
         }
 
         $user->otp_verified = true;
+        $user->fcm_token = $request->device_token ?? null;
         $user->save();
 
         $token = $user->createToken('AuthToken')->plainTextToken;
@@ -194,9 +196,10 @@ class AuthController extends Controller
         $userObj = [
             'user_name' => $user->name,
             'user_phone' => $user->phone_number,];
-
-
         $token = $user->createToken('AuthToken')->plainTextToken;
+
+        $user->fcm_token = $request->device_token ?? null;
+        $user->save();
         return response()->json(['token' => $token, 'is_admin' => $userStatus, 'user' => $userObj], 200);
     }
 
