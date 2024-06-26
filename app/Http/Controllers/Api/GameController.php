@@ -64,7 +64,7 @@ class GameController extends Controller
                 ]);
 
                 $notificationConfigs = [
-                    'title' => 'Created new game',
+                    'title' => 'New contest available now !!',
                     'body' => 'Check All Details For This Request In App',
                     'soundPlay' => true,
                     'show_in_foreground' => true,
@@ -375,12 +375,17 @@ class GameController extends Controller
             return response()->json(['message' => 'Results have already been announced for this game'], 400);
         }
 
-        $joinedUsers = UserGameJoin::where('game_id', $validatedData['game_id'])->get();
+        $joinedUsers = UserGameJoin::with('user')->where('game_id', $validatedData['game_id'])->get();
 
+        $tempAgentTokenData = [];
         $totalGameInvestment = 0;
         $totalResultAmount = 0;
 
         foreach ($joinedUsers as $joinedUser) {
+
+            if ($joinedUser->user && !empty($joinedUser->user->fcm_token)) {
+                $tempAgentTokenData['device_token'] = $joinedUser->user->fcm_token;
+            }
             $userGameLog = new UserGameLog();
             $userCard = $joinedUser->user_card;
             $investment = $joinedUser->joined_amount;
@@ -437,6 +442,15 @@ class GameController extends Controller
         if ($gameLog) {
             $gameLog->update(['game_status' => 1]);
         }
+
+        $notificationConfigs = [
+            'title' => 'Result published !!',
+            'body' => 'Check All Details For This Request In App',
+            'soundPlay' => true,
+            'show_in_foreground' => true,
+        ];
+        $fcmServiceObj = new SendNotification();
+        $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
 
         return response()->json(['message' => 'Results announced successfully', 'admin_earnings_or_loss' => $adminEarningsOrLoss], 200);
     }
