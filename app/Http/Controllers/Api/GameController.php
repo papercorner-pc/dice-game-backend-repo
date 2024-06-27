@@ -382,7 +382,6 @@ class GameController extends Controller
         $totalResultAmount = 0;
 
         foreach ($joinedUsers as $joinedUser) {
-
             if ($joinedUser->user && !empty($joinedUser->user->fcm_token)) {
                 $tempAgentTokenData['device_token'] = $joinedUser->user->fcm_token;
             }
@@ -449,8 +448,12 @@ class GameController extends Controller
             'soundPlay' => true,
             'show_in_foreground' => true,
         ];
+
         $fcmServiceObj = new SendNotification();
-        $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
+
+        if(isset($tempAgentTokenData['device_token'])){
+            $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
+        }
 
         return response()->json(['message' => 'Results announced successfully', 'admin_earnings_or_loss' => $adminEarningsOrLoss], 200);
     }
