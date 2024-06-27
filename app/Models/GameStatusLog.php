@@ -9,5 +9,5 @@ class GameStatusLog extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['game_id', 'game_status', 'user_id'];
+    protected $fillable = ['game_id', 'game_status', 'user_id', 'is_publishable'];
 }

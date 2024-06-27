@@ -21,6 +21,8 @@ Route::middleware(['superadmin','auth:sanctum'])->group(function () {
     Route::post('admin/create-game', [GameController::class, 'createGame']);
     Route::post('game/joined-users', [GameController::class, 'userGameList']);
     Route::post('result/announce', [GameController::class, 'announceResult']);
+    Route::post('admin/delete-game', [GameController::class, 'deleteGame']);
+    Route::post('admin/edit-game', [GameController::class, 'editGame']);
 });
 
 Route::middleware(['auth:sanctum'])->group(function (){
@@ -42,6 +44,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::post('user/edit-profile', [UserController::class, 'editProfile']);
     Route::post('single/game-list',[GameController::class, 'singleGameDetail']);
     Route::post('update/profile-image', [UserController::class, 'updateProfile']);
+    Route::post('game/publish-status', [GameController::class, 'gamePublishStatus']);
 
 });
 
