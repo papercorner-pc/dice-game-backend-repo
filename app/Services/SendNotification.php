@@ -207,6 +207,8 @@ class SendNotification
             $returnResponses = [];
             foreach ($registrationIds as $currentDeviceToken) {
                 $postData['message']['token'] = $currentDeviceToken;
+
+                Log::info('current device token '.$currentDeviceToken);
                 $googleApiClient = new GoogleClient();
                 /*$googleApiClient->setAuthConfig($serviceAccountConfig);*/
                 $googleApiClient->setAuthConfig(public_path(trim($this->firebaseServiceAccountJsonPath)));
@@ -214,6 +216,8 @@ class SendNotification
                 $httpClient = $googleApiClient->authorize();
                 $returnResponse = $httpClient->post($this->fcmSendV1ApiUrl, ['json' => $postData]);
                 $returnResponses[] = $returnResponse->getBody()->getContents();
+
+                Log::info('Notification send successfully');
                 unset($googleApiClient);
             }
 
