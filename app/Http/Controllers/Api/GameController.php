@@ -53,6 +53,8 @@ class GameController extends Controller
             foreach ($gameUsers as $gameUser){
                 if($gameUser->fcm_token){
                     $tempAgentTokenData['device_token'] = $gameUser->fcm_token;
+                    $tempAgentTokenData['game_id'] = $game->id;
+                    $tempAgentTokenData['game_type'] = 'game_created';
                 }
             }
 
@@ -68,10 +70,6 @@ class GameController extends Controller
                     'body' => 'Check All Details For This Request In App',
                     'soundPlay' => true,
                     'show_in_foreground' => true,
-                    'data' => [
-                        'game_id' => $game->id,
-                        'game_type' => 'game_created'
-                    ],
                 ];
                 $fcmServiceObj = new SendNotification();
                 if(isset($tempAgentTokenData['device_token'])){
@@ -390,6 +388,8 @@ class GameController extends Controller
         foreach ($joinedUsers as $joinedUser) {
             if ($joinedUser->user && !empty($joinedUser->user->fcm_token)) {
                 $tempAgentTokenData['device_token'] = $joinedUser->user->fcm_token;
+                $tempAgentTokenData['game_id'] = $game->id;
+                $tempAgentTokenData['game_type'] = 'game_published';
             }
             $userGameLog = new UserGameLog();
             $userCard = $joinedUser->user_card;
@@ -453,10 +453,6 @@ class GameController extends Controller
             'body' => 'Check All Details For This Request In App',
             'soundPlay' => true,
             'show_in_foreground' => true,
-            'data' => [
-                'game_id' => $game->id,
-                'game_type' => 'game_published'
-            ],
         ];
 
         $fcmServiceObj = new SendNotification();
@@ -549,6 +545,8 @@ class GameController extends Controller
                             if ($user) {
                                 $user->deposit($userGameJoin->joined_amount);
                                 $tempAgentTokenData['device_token'] = $user->fcm_token;
+                                $tempAgentTokenData['game_id'] = $game->id;
+                                $tempAgentTokenData['game_type'] = 'game_deleted';
                             }
                         }
 
@@ -557,15 +555,13 @@ class GameController extends Controller
                         $game->delete();
 
 
+
+
                         $notificationConfigs = [
                             'title' => 'Game '.$game->match_name.' deleted by admin !!',
                             'body' => 'Check All Details For This Request In App',
                             'soundPlay' => true,
                             'show_in_foreground' => true,
-                            'data' => [
-                                'game_id' => $gameId,
-                                'game_type' => 'game_deleted'
-                            ],
                         ];
 
                         $fcmServiceObj = new SendNotification();
