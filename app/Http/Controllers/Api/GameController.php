@@ -9,11 +9,11 @@ use App\Models\GameStatusLog;
 use App\Models\User;
 use App\Models\UserGameJoin;
 use App\Models\UserGameLog;
-use App\Services\CustomFcmPushService;
 use App\Services\SendNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Mockery\Exception;
 use function Monolog\error;
@@ -70,7 +70,9 @@ class GameController extends Controller
                     'show_in_foreground' => true,
                 ];
                 $fcmServiceObj = new SendNotification();
-                $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
+                if(isset($tempAgentTokenData['device_token'])){
+                    $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
+                }
                 return response()->json(['message' => 'New game created successfully'], 200);
             } else {
                 return response()->json(['message' => 'Something went wrong, please try again later'], 500);
@@ -521,4 +523,109 @@ class GameController extends Controller
         }
     }
 
+
+    public function deleteGame(Request $request){
+        $gameId = $request->game_id;
+        $tempAgentTokenData= [];
+
+        if($gameId){
+            $game = Game::with(['gameLog', 'usersInGame'])->where('id', $gameId)->first();
+            if($game){
+                if($game->gameLog && $game->gameLog->game_status == 1){
+                    return response()->json(['error' => 'Result already published'], 400);
+                } else {
+                    DB::beginTransaction();
+                    try {
+                        foreach ($game->usersInGame as $userGameJoin) {
+                            $user = User::find($userGameJoin->user_id);
+                            if ($user) {
+                                $user->deposit($userGameJoin->joined_amount);
+                                $tempAgentTokenData['device_token'] = $user->fcm_token;
+                            }
+                        }
+
+                        GameStatusLog::where('game_id', $gameId)->delete();
+                        UserGameJoin::where('game_id', $gameId)->delete();
+                        $game->delete();
+
+
+                        $notificationConfigs = [
+                            'title' => 'Game '.$game->match_name.' deleted by admin !!',
+                            'body' => 'Check All Details For This Request In App',
+                            'soundPlay' => true,
+                            'show_in_foreground' => true,
+                        ];
+
+                        $fcmServiceObj = new SendNotification();
+                        if(isset($tempAgentTokenData['device_token'])){
+                            $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
+                        }
+
+                        DB::commit();
+                        return response()->json(['message' => 'Game deleted successfully'], 200);
+                    } catch (\Exception $e) {
+                        DB::rollBack();
+                        return response()->json(['error' => 'Failed to delete game data'], 500);
+                    }
+                }
+            } else {
+                return response()->json(['error' => 'Game not found'], 400);
+            }
+        } else {
+            return response()->json(['error' => 'Game ID is required'], 400);
+        }
+    }
+
+    public function editGame(Request $request) {
+        $game = Game::with('gameLog')->find($request->game_id);
+        if (!$game) {
+            return response()->json(['message' => 'Game not found'], 404);
+        }
+        if ($game->gameLog && $game->gameLog->game_status == 1) {
+            return response()->json(['message' => 'Game is already published and cannot be edited'], 400);
+        }
+
+        if ($request->has('match_name')) {
+            $game->match_name = $request->match_name;
+        }
+        if ($request->has('min_fee')) {
+            $game->min_fee = $request->min_fee;
+        }
+        if ($request->has('entry_limit')) {
+            $game->entry_limit = $request->entry_limit;
+        }
+        if ($request->has('start_time')) {
+            $game->start_time = $request->start_time;
+        }
+        if ($request->has('start_date')) {
+            $game->start_date = $request->start_date;
+        }
+        if ($request->has('end_time')) {
+            $game->end_time = $request->end_time;
+        }
+        if ($request->has('end_date')) {
+            $game->end_date = $request->end_date;
+        }
+
+        $game->save();
+
+        return response()->json(['message' => 'Game updated successfully', 'game' => $game], 200);
+    }
+
+
+    public function gamePublishStatus(Request $request){
+        $gameId = $request->game_id;
+        if($gameId){
+            $gamePublishStatus = GameStatusLog::where('game_id',$gameId)->first();
+            if($request->is_publishable){
+                $gamePublishStatus->is_publishable = $request->test;
+                $gamePublishStatus->save();
+                return response()->json(['success' => 'Game status updated successfully', 'is_publishable' => $gamePublishStatus->is_publishable],400);
+            }else{
+                return response()->json(['success' => 'Game status fetched successfully', 'is_publishable' => $gamePublishStatus->is_publishable],400);
+            }
+        }else{
+            return response()->json(['error' => 'Game id required'],400);
+        }
+    }
 }
