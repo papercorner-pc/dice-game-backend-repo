@@ -598,19 +598,28 @@ class GameController extends Controller
             $game->start_time = $request->start_time;
         }
         if ($request->has('start_date')) {
-            $game->start_date = $request->start_date;
+            $game->start_date = $this->transformDate($request->start_date);
         }
         if ($request->has('end_time')) {
             $game->end_time = $request->end_time;
         }
         if ($request->has('end_date')) {
-            $game->end_date = $request->end_date;
+            $game->end_date = $this->transformDate($request->end_date);
         }
 
         $game->save();
-
         return response()->json(['message' => 'Game updated successfully', 'game' => $game], 200);
     }
+
+    private function transformDate($date) {
+        $dateTime = \DateTime::createFromFormat('d/m/Y', $date);
+        if ($dateTime) {
+            return $dateTime->format('Y-m-d');
+        } else {
+            throw new \Exception("Invalid date format");
+        }
+    }
+
 
 
     public function gamePublishStatus(Request $request){
