@@ -641,9 +641,9 @@ class GameController extends Controller
             if($request->is_publishable){
                 $gamePublishStatus->is_publishable = $request->test;
                 $gamePublishStatus->save();
-                return response()->json(['success' => 'Game status updated successfully', 'is_publishable' => $gamePublishStatus->is_publishable],400);
+                return response()->json(['success' => 'Game status updated successfully', 'is_publishable' => $gamePublishStatus->is_publishable],200);
             }else{
-                return response()->json(['success' => 'Game status fetched successfully', 'is_publishable' => $gamePublishStatus->is_publishable],400);
+                return response()->json(['success' => 'Game status fetched successfully', 'is_publishable' => $gamePublishStatus->is_publishable],200);
             }
         }else{
             return response()->json(['error' => 'Game id required'],400);
