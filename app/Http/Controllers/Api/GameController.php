@@ -68,6 +68,10 @@ class GameController extends Controller
                     'body' => 'Check All Details For This Request In App',
                     'soundPlay' => true,
                     'show_in_foreground' => true,
+                    'data' => [
+                        'game_id' => $game->id,
+                        'game_type' => 'game_created'
+                    ],
                 ];
                 $fcmServiceObj = new SendNotification();
                 if(isset($tempAgentTokenData['device_token'])){
@@ -449,6 +453,10 @@ class GameController extends Controller
             'body' => 'Check All Details For This Request In App',
             'soundPlay' => true,
             'show_in_foreground' => true,
+            'data' => [
+                'game_id' => $game->id,
+                'game_type' => 'game_published'
+            ],
         ];
 
         $fcmServiceObj = new SendNotification();
@@ -554,6 +562,10 @@ class GameController extends Controller
                             'body' => 'Check All Details For This Request In App',
                             'soundPlay' => true,
                             'show_in_foreground' => true,
+                            'data' => [
+                                'game_id' => $gameId,
+                                'game_type' => 'game_deleted'
+                            ],
                         ];
 
                         $fcmServiceObj = new SendNotification();
