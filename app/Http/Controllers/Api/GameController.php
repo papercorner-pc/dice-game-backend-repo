@@ -636,10 +636,14 @@ class GameController extends Controller
 
     public function gamePublishStatus(Request $request){
         $gameId = $request->game_id;
+        $value = 0;
+        if($request->is_publishable == true){
+             $value = 1;
+        }
         if($gameId){
             $gamePublishStatus = GameStatusLog::where('game_id',$gameId)->first();
             if($request->is_publishable){
-                $gamePublishStatus->is_publishable = $request->test;
+                $gamePublishStatus->is_publishable = $value;
                 $gamePublishStatus->save();
                 return response()->json(['success' => 'Game status updated successfully', 'is_publishable' => $gamePublishStatus->is_publishable],200);
             }else{
