@@ -52,8 +52,8 @@ class AuthController extends Controller
             'fcm_token' => $request->device_token ?? null
         ]);
 
-        $message = 'Your otp is '.$otp.' please verify ';
-        $this->twilioService->sendSms($user->phone_number, $message);
+        /*$message = 'Your otp is '.$otp.' please verify ';
+        $this->twilioService->sendSms($user->phone_number, $message);*/
         return response()->json(['message' => 'Account created successfully.'], 201);
     }
 
