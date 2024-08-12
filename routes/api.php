@@ -30,6 +30,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
         return $request->user();
     });
 
+
     Route::post('games/join', [GameController::class, 'joinGame']);
     Route::post('game/list', [GameController::class, 'gameList']);
     Route::post('game/detail', [GameController::class, 'gameDetail']);
@@ -45,6 +46,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::post('single/game-list',[GameController::class, 'singleGameDetail']);
     Route::post('update/profile-image', [UserController::class, 'updateProfile']);
     Route::post('game/publish-status', [GameController::class, 'gamePublishStatus']);
+    Route::post('create-users', [UserController::class, 'createUser']);
 
 });
 

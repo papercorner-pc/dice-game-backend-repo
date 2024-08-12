@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use function Termwind\Actions\multiple;
 
 class UserController extends Controller
 {
@@ -65,7 +66,6 @@ class UserController extends Controller
         return response()->json(['transactions' => $transactions, 'balance' => $balance], 200);
     }
 
-
     public function userProfile(Request $request)
     {
         $user = Auth::user();
@@ -89,7 +89,6 @@ class UserController extends Controller
         return response()->json(['user' => $userProfile, 'message' => 'success'], 200);
     }
 
-
     public function changePassword(Request $request)
     {
         $user = Auth::user();
@@ -111,7 +110,6 @@ class UserController extends Controller
 
         return response()->json(['message' => 'Password changed successfully'], 200);
     }
-
 
     public function editProfile(Request $request)
     {
@@ -196,5 +194,53 @@ class UserController extends Controller
         return response()->json(['message' => 'Profile updated successfully', 'user' => $user, 'address' => $userAddress], 200);
     }
 
+    public function createUser(Request $request){
+
+        $user = Auth::user();
+        try {
+            $validator = $request->validate([
+                'phone_number' => 'required|string|unique:users,phone_number',
+                'username' => 'required|string',
+                'password' => 'required|string',
+                'type' => 'required|string',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 400);
+        }
+
+        if($user->is_super_admin == 1 || $user->is_agent == 1){
+            $otp = mt_rand(100000, 999999);
+            $otpValidTill = Carbon::now()->addMinutes(10);
+            $agentFlag = null;
+            $superAdminFlag = null;
+            if($validator['type'] == 'agent'){
+                $agentFlag = 1;
+            }else if($validator['type'] == 'super_admin'){
+                $superAdminFlag = 1;
+            }
+
+            $user = User::create([
+                'name' => $validator['username'],
+                'phone_number' => $validator['phone_number'],
+                'password' => Hash::make($validator['password']),
+                'otp' => $otp,
+                'otp_valid_till' => $otpValidTill,
+                'otp_verified' => false,
+                'fcm_token' => $request->device_token ?? null,
+                'is_super_admin' => $superAdminFlag ?? null,
+                'is_agent' => $agentFlag ?? null,
+                'created_by' => Auth::user()->id ?? null
+
+            ]);
+
+            if($user){
+                return response()->json(['message' => 'Account created successfully.'], 200);
+            }else{
+                return response()->json(['message' => 'Something went wrong'], 500);
+            }
+        }else{
+            return response()->json(['message' => 'You have no access to create a user'], 500);
+        }
+    }
 
 }

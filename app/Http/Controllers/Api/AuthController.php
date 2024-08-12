@@ -125,7 +125,8 @@ class AuthController extends Controller
     {
         try {
             $validator = $request->validate([
-                'phone_number' => 'required|string',
+                'phone_number' => 'required_without:username|string',
+                'username' => 'required_without:phone_number|string',
                 'password' => 'required_without:otp|string',
                 'otp' => 'required_without:password|string',
             ]);
@@ -176,21 +177,46 @@ class AuthController extends Controller
             }
 
         } else {
-            $user = User::where('phone_number', $request->phone_number)->first();
+            /*$user = User::where(function ($query) use ($request) {
+                if ($request->filled('phone_number')) {
+                    $query->where('phone_number', $request->phone_number);
+                }
+                if ($request->filled('name')) {
+                    $query->where('name', $request->username);
+                }
+            })->first();
 
-            if (!$user) {
-                return response()->json(['error' => 'User not found.'], 404);
+            dd($user);
+
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                return response()->json(['error' => 'Invalid credentials.'], 401);
+            }*/
+
+            if($request->username) {
+                $user = User::where('name', $request->username)->first();
+                if(!$user || !Hash::check($request->password, $user->password)) {
+                    return response()->json(['error' => 'Invalid credentials.'], 401);
+                }
+            } elseif($request->phone_number) {
+                $user = User::where('phone_number', $request->phone_number)->first();
+                if(!$user || !Hash::check($request->password, $user->password)) {
+                    return response()->json(['error' => 'Invalid credentials.'], 401);
+                }
+            } else {
+                return response()->json(['error' => 'Something went wrong'], 401);
             }
 
-            if (!Hash::check($request->password, $user->password)) {
-                return response()->json(['error' => 'Invalid password.'], 401);
-            }
         }
 
+        $userType = '';
         if ($user->is_super_admin == 1) {
             $userStatus = 1;
-        } else {
+            $userType = 'super_admin';
+        }else if($user->is_agent == 1){
+            $userType = 'agent';
+        } else  {
             $userStatus = 0;
+            $userType = 'dealer';
         }
 
         $userObj = [
@@ -200,7 +226,7 @@ class AuthController extends Controller
 
         $user->fcm_token = $request->device_token ?? null;
         $user->save();
-        return response()->json(['token' => $token, 'is_admin' => $userStatus, 'user' => $userObj], 200);
+        return response()->json(['token' => $token, 'is_admin' => $userStatus, 'user' => $userObj, 'type' => $userType ], 200);
     }
 
 
