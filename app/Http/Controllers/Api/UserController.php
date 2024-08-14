@@ -199,7 +199,7 @@ class UserController extends Controller
         $user = Auth::user();
         try {
             $validator = $request->validate([
-                'phone_number' => 'required|string|unique:users,phone_number',
+                'phone_number' => 'unique:users,phone_number',
                 'username' => 'required|string',
                 'password' => 'required|string',
                 'type' => 'required|string',
@@ -220,8 +220,8 @@ class UserController extends Controller
             }
 
             $user = User::create([
-                'name' => $validator['username'],
-                'phone_number' => $validator['phone_number'],
+                'name' => $validator['username'] ?? null,
+                'phone_number' => $validator['phone_number'] ?? null,
                 'password' => Hash::make($validator['password']),
                 'otp' => $otp,
                 'otp_valid_till' => $otpValidTill,
@@ -241,6 +241,24 @@ class UserController extends Controller
         }else{
             return response()->json(['message' => 'You have no access to create a user'], 500);
         }
+    }
+
+
+    public function getUserList(){
+        $user = Auth::user();
+        $userList = [];
+
+        if($user->is_super_admin == 1){
+            $agentUser = User::where('is_agent', 1)->get();
+            $userList['agents'] = $agentUser;
+        }else if($user->is_agent == 1){
+            $dealers = User::where('created_by', $user->id)->get();
+            $userList['dealers'] = $dealers;
+        }else{
+            $userList = $user;
+        }
+
+        return response()->json(['data' => $userList], 200);
     }
 
 }

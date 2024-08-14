@@ -213,6 +213,7 @@ class AuthController extends Controller
             $userStatus = 1;
             $userType = 'super_admin';
         }else if($user->is_agent == 1){
+            $userStatus = 0;
             $userType = 'agent';
         } else  {
             $userStatus = 0;
