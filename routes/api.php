@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SmsController;
+use App\Http\Controllers\Api\WalletManageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,9 @@ Route::middleware(['superadmin','auth:sanctum'])->group(function () {
     Route::post('result/announce', [GameController::class, 'announceResult']);
     Route::post('admin/delete-game', [GameController::class, 'deleteGame']);
     Route::post('admin/edit-game', [GameController::class, 'editGame']);
+    Route::post('agent/wallet-status-update', [WalletManageController::class, 'agentRequestStatusUpdate']);
+    Route::post('admin/wallet-recharge', [WalletManageController::class, 'adminWalletRecharge']);
+
 });
 
 Route::middleware(['auth:sanctum'])->group(function (){
@@ -46,6 +50,12 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::post('update/profile-image', [UserController::class, 'updateProfile']);
     Route::post('game/publish-status', [GameController::class, 'gamePublishStatus']);
     Route::post('create-users', [UserController::class, 'createUser']);
+
+    Route::post('agent/wallet-recharge', [WalletManageController::class, 'agentWalletRecharge']);
+    Route::post('agent/wallet-request', [WalletManageController::class, 'agentWalletRequestAdmin']);
+
+    Route::post('dealer/wallet-request', [WalletManageController::class, 'dealerWalletRequest']);
+    Route::post('dealer/wallet-status-update', [WalletManageController::class, 'dealerRequestStatusUpdate']);
 
 });
 
