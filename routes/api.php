@@ -56,6 +56,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
 
     Route::post('dealer/wallet-request', [WalletManageController::class, 'dealerWalletRequest']);
     Route::post('dealer/wallet-status-update', [WalletManageController::class, 'dealerRequestStatusUpdate']);
+    Route::get('wallet-requests', [WalletManageController::class, 'walletRequestList']);
 
 });
 

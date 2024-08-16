@@ -25,4 +25,12 @@ class AgentWalletRequest extends Model
     {
         return $this->hasOne(DealerWalletRequest::class, 'id', 'dealer_request_id');
     }
+
+    public function requestUser(){
+        return $this->hasOne(User::class, 'id', 'request_from');
+    }
+
+    public function forUser(){
+        return $this->hasOne(User::class, 'id', 'wallet_for');
+    }
 }

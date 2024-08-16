@@ -20,4 +20,8 @@ class DealerWalletRequest extends Model
         'wallet_status'
     ];
 
+
+    public function requestUser(){
+        return $this->hasOne(User::class, 'id', 'request_from');
+    }
 }
