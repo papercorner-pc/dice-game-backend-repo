@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('request_from');
             $table->unsignedBigInteger('request_to');
-            $table->unsignedBigInteger('dealer_request_id');
+            $table->unsignedBigInteger('dealer_request_id')->nullable();
             $table->unsignedBigInteger('wallet_for');
             $table->decimal('amount', 15, 2);
             $table->unsignedTinyInteger('status')->default(0)->comment('0 => pending, 1 => approved, 2 => rejected');
