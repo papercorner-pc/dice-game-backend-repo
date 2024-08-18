@@ -150,62 +150,76 @@ class WalletManageController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Agent wallet request not found'], 404);
         }
 
-        if ($agentRequest->status == 0 || $agentRequest->status == 2) {
-            $dealerRequest = $agentRequest->getDealerReq;
-            if (!$dealerRequest) {
-                return response()->json(['status' => 'error', 'message' => 'Dealer request not found'], 404);
+        if ($agentRequest->status != 0 && $agentRequest->status != 2) {
+            return response()->json(['status' => 'error', 'message' => 'Request already approved or rejected'], 400);
+        }
+
+        if ($type === 'accept') {
+            $dealer = User::find($agentRequest->wallet_for);
+            if ($dealer) {
+                $dealer->deposit($agentRequest->amount);
+                $agentRequest->wallet_status = 1;
             }
 
-            if ($type === 'accept') {
-                $dealer = User::find($agentRequest->wallet_for);
-                if ($dealer) {
-                    $dealer->deposit($agentRequest->amount);
-                    $agentRequest->wallet_status = 1;
-                }
+            $agentRequest->status = 1;
+            $agentRequest->approved_at = now();
+            $agentRequest->save();
 
-                $agentRequest->status = 1;
-                $agentRequest->approved_at = now();
-                $agentRequest->save();
-
-                $allAgentReqs = AgentWalletRequest::where('dealer_request_id', $agentRequest->dealer_request_id)->get();
-                foreach ($allAgentReqs as $agentReq) {
-                    if ($agentReq->status == 0) {
-                        $agentReq->status = 1;
-                        $agentReq->wallet_status = 1;
-                        $agentReq->approved_at = now();
-                        $agentReq->save();
-                    }
-                }
-                $allApproved = $allAgentReqs->every(function ($req) {
-                    return $req->status == 1;
-                });
-
-                if ($allApproved) {
+            if ($agentRequest->request_from == $agentRequest->wallet_for) {
+                $this->updateAllAgentRequests($agentRequest->dealer_request_id);
+                return response()->json(['status' => 'success', 'message' => 'Request accepted. Dealer wallet updated.'], 200);
+            } elseif ($agentRequest->getDealerReq) {
+                $dealerRequest = $agentRequest->getDealerReq;
+                $this->updateAllAgentRequests($agentRequest->dealer_request_id);
+                if ($this->areAllAgentRequestsApproved($agentRequest->dealer_request_id)) {
                     $dealerRequest->status = 1;
                     $dealerRequest->wallet_status = 1;
                     $dealerRequest->approved_at = now();
                     $dealerRequest->save();
                 }
-
                 return response()->json(['status' => 'success', 'message' => 'Request accepted. Dealer wallet updated.'], 200);
+            }
+        } elseif ($type === 'reject') {
+            $agentRequest->status = 2;
+            $agentRequest->wallet_status = 2;
+            $agentRequest->save();
 
-            } elseif ($type === 'reject') {
-                $agentRequest->status = 2;
-                $agentRequest->wallet_status = 2;
-                $agentRequest->save();
-
+            if ($agentRequest->getDealerReq) {
+                $dealerRequest = $agentRequest->getDealerReq;
                 $dealerRequest->status = 2;
                 $dealerRequest->wallet_status = 2;
                 $dealerRequest->save();
-
-                return response()->json(['status' => 'success', 'message' => 'Request rejected.'], 200);
-            } else {
-                return response()->json(['status' => 'error', 'message' => 'Invalid request type'], 400);
             }
+
+            return response()->json(['status' => 'success', 'message' => 'Request rejected.'], 200);
         } else {
-            return response()->json(['status' => 'error', 'message' => 'Request already approved or rejected'], 400);
+            return response()->json(['status' => 'error', 'message' => 'Invalid request type'], 400);
         }
     }
+
+    private function updateAllAgentRequests($dealerRequestId)
+    {
+        $allAgentReqs = AgentWalletRequest::where('dealer_request_id', $dealerRequestId)->get();
+
+        foreach ($allAgentReqs as $agentReq) {
+            if ($agentReq->status == 0) {
+                $agentReq->status = 1;
+                $agentReq->wallet_status = 1; 
+                $agentReq->approved_at = now();
+                $agentReq->save();
+            }
+        }
+    }
+
+    private function areAllAgentRequestsApproved($dealerRequestId)
+    {
+        $allAgentReqs = AgentWalletRequest::where('dealer_request_id', $dealerRequestId)->get();
+
+        return $allAgentReqs->every(function ($req) {
+            return $req->status == 1;
+        });
+    }
+
 
     public function adminWalletRecharge(Request $request)
     {
