@@ -261,4 +261,28 @@ class UserController extends Controller
         return response()->json(['data' => $userList], 200);
     }
 
+
+    public function changeUserPassword(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'new_password' => 'required'
+        ]);
+
+        $user = User::find($request->user_id);
+
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'User not found'], 404);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        $data = ['new_password' => $request->new_password,
+            'user' => $user];
+
+
+        return response()->json(['status' => 'success', 'message' => 'Password changed successfully', 'data' => $data ], 200);
+    }
+
 }
