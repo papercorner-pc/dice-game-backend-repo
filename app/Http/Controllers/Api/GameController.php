@@ -27,6 +27,67 @@ class GameController extends Controller
             $data = $request->validate([
                 'match_name' => 'required|string',
                 'min_fee' => 'required|numeric',
+                'entry_limit' => 'nullable|integer',
+                'user_limit' => 'nullable|integer',
+                'symbol_limit' => 'nullable|integer',
+            ]);
+
+
+            $user = Auth::user();
+
+            $game = Game::create([
+                'match_name' => $data['match_name'],
+                'min_fee' => $data['min_fee'],
+                'user_amount_limit' => $data['user_limit'],
+                'symbol_limit' => $data['symbol_limit'],
+                'created_by' => $user->id,
+                'entry_limit' => $data['entry_limit'],
+            ]);
+
+
+            $tempAgentTokenData = [];
+            $gameUsers = User::all();
+            foreach ($gameUsers as $gameUser){
+                if($gameUser->fcm_token){
+                    $tempAgentTokenData['device_token'] = $gameUser->fcm_token;
+                    $tempAgentTokenData['game_id'] = $game->id;
+                    $tempAgentTokenData['game_type'] = 'game_created';
+                }
+            }
+
+            if ($game) {
+
+                $gameStatus = GameStatusLog::create([
+                    'game_id' => $game->id,
+                    'game_status' => 0
+                ]);
+
+                $notificationConfigs = [
+                    'title' => 'New contest available now !!',
+                    'body' => 'Check All Details For This Request In App',
+                    'soundPlay' => true,
+                    'show_in_foreground' => true,
+                ];
+                $fcmServiceObj = new SendNotification();
+                if(isset($tempAgentTokenData['device_token'])){
+                    $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
+                }
+                return response()->json(['message' => 'New game created successfully'], 200);
+            } else {
+                return response()->json(['message' => 'Something went wrong, please try again later'], 500);
+            }
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['errors' => $e->errors()], 400);
+        }
+    }
+
+    public function createGameOld(Request $request)
+    {
+        try {
+            $data = $request->validate([
+                'match_name' => 'required|string',
+                'min_fee' => 'required|numeric',
                 'start_time' => 'required|date_format:H:i:s',
                 'start_date' => 'required|date_format:d/m/Y',
                 'end_time' => 'nullable|date_format:H:i:s',
@@ -85,7 +146,6 @@ class GameController extends Controller
         }
     }
 
-
     public function joinGame(Request $request)
     {
         try {
@@ -95,27 +155,38 @@ class GameController extends Controller
                 'user_card' => 'required'
             ]);
 
+            $user = Auth::user();
             $game = Game::find($data['game_id']);
-            $gameLimit = $game->entry_limit;
 
             $totalJoins = UserGameJoin::where('game_id', $data['game_id'])->count();
-            if ($totalJoins >= $gameLimit) {
+            if ($totalJoins >= $game->entry_limit) {
                 return response()->json(['message' => 'Limit exceeds, please join another game.'], 400);
             }
+
             if ($data['joined_amount'] < $game->min_fee) {
                 return response()->json(['message' => 'Minimum amount ' . $game->min_fee . ' required.'], 400);
             }
 
-            $user = Auth::user();
-            /*$existingJoin = UserGameJoin::where('user_id', $user->id)
+            $existingJoins = UserGameJoin::where('user_id', $user->id)
                 ->where('game_id', $data['game_id'])
-                ->first();
+                ->get();
 
-            if ($existingJoin) {
-                return response()->json(['message' => 'You have already joined this game.'], 400);
-            }*/
+            $userJoinedTotalAmount = 0;
+            $userCardsUsed = [];
 
-            // Create a new game join record
+            foreach ($existingJoins as $existingJoin) {
+                $userJoinedTotalAmount += (float)$existingJoin->joined_amount;
+                $userCardsUsed[] = $existingJoin->user_card;
+            }
+
+            if (in_array($data['user_card'], $userCardsUsed) && count($userCardsUsed) >= $game->symbol_limit) {
+                return response()->json(['message' => 'Card limit exceeded.'], 400);
+            }
+
+            if ($userJoinedTotalAmount + $data['joined_amount'] > $game->user_amount_limit) {
+                return response()->json(['message' => 'User amount limit for this card exceeded.'], 400);
+            }
+
             $gameJoin = UserGameJoin::create([
                 'user_id' => $user->id,
                 'game_id' => $data['game_id'],
@@ -135,6 +206,7 @@ class GameController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
 
 
     public function gameList(Request $request)
@@ -194,13 +266,13 @@ class GameController extends Controller
                 ->whereHas('gameLog', function ($query) {
                     $query->where('game_status', 0);
                 })
-                ->where(function ($query) use ($currentDate, $currentTime) {
+                /*->where(function ($query) use ($currentDate, $currentTime) {
                     $query->whereDate('start_date', '>', $currentDate)
                         ->orWhere(function ($query) use ($currentDate, $currentTime) {
                             $query->whereDate('start_date', '=', $currentDate)
                                 ->whereTime('start_time', '>', $currentTime);
                         });
-                })
+                })*/
                 ->orderBy('created_at', 'desc')
                 ->get();
 
