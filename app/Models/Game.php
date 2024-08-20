@@ -22,7 +22,9 @@ class Game extends Model
         'end_date',
         'created_by',
         'entry_limit',
-        'result_mode'
+        'result_mode',
+        'user_amount_limit',
+        'symbol_limit',
     ];
 
 

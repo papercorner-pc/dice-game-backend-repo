@@ -59,6 +59,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::get('wallet-requests', [WalletManageController::class, 'walletRequestList']);
     Route::post('user/change-password', [UserController::class, 'changeUserPassword']);
 
+    Route::post('game/card-balance', [GameController::class, 'getGameCardBalance']);
 });
 
 
