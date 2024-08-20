@@ -287,10 +287,12 @@ class WalletManageController extends Controller
     {
         $user = Auth::user();
         if($user->is_super_admin == 1){
-            $list = AgentWalletRequest::with(['requestUser', 'forUser'])->where('request_to', $user->id)->get();
+            $list = AgentWalletRequest::with(['requestUser', 'forUser'])->where('request_to', $user->id)
+            ->where('status', 0)->get();
             return response()->json(['status' => 'success', 'message' => 'data fetched success', 'data' => $list], 200);
         }else if ($user->is_agent == 1){
-            $list = DealerWalletRequest::with(['requestUser'])->where('request_to', $user->id)->get();
+            $list = DealerWalletRequest::with(['requestUser'])->where('request_to', $user->id)
+            ->where('status', 0)->get();
             return response()->json(['status' => 'success', 'message' => 'data fetched success', 'data' => $list], 200);
         }else{
             return response()->json(['status'=>'error', 'message' => 'You have no access'], 400);
