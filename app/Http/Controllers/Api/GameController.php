@@ -179,12 +179,13 @@ class GameController extends Controller
                 $userCardsUsed[] = $existingJoin->user_card;
             }
 
-            if (in_array($data['user_card'], $userCardsUsed) && count($userCardsUsed) >= $game->symbol_limit) {
-                return response()->json(['message' => 'Card limit exceeded.'], 400);
-            }
+            $totalGameAmount = UserGameJoin::where('game_id', $data['game_id'])->where('user_card', $data['user_card'])->sum('joined_amount');
 
+            if ($totalGameAmount + $data['joined_amount'] > $game->symbol_limit) {
+                return response()->json(['message' => 'Game card limit exceeded.'], 400);
+            }
             if ($userJoinedTotalAmount + $data['joined_amount'] > $game->user_amount_limit) {
-                return response()->json(['message' => 'User amount limit for this card exceeded.'], 400);
+                return response()->json(['message' => 'User amount limit exceeded.'], 400);
             }
 
             $gameJoin = UserGameJoin::create([
@@ -206,8 +207,6 @@ class GameController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
-
 
     public function gameList(Request $request)
     {
@@ -337,7 +336,6 @@ class GameController extends Controller
         return response()->json(['message' => 'Invalid request type', 'user_details' => $userGameDetails], 400);
     }
 
-
     public function gameDetail(Request $request)
     {
         $gameId = $request->game_id;
@@ -350,7 +348,6 @@ class GameController extends Controller
             }
         }
     }
-
 
     public function filterGames(Request $request)
     {
@@ -391,7 +388,6 @@ class GameController extends Controller
         }
         return response()->json(['games' => $games->toArray(), 'message' => 'success'], 200);
     }
-
 
     public function userGameList(Request $request)
     {
@@ -536,7 +532,6 @@ class GameController extends Controller
         return response()->json(['message' => 'Results announced successfully', 'admin_earnings_or_loss' => $adminEarningsOrLoss], 200);
     }
 
-
     public function singleGameDetail(Request $request)
     {
         try {
@@ -598,7 +593,6 @@ class GameController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
 
     public function deleteGame(Request $request){
         $gameId = $request->game_id;
@@ -700,8 +694,6 @@ class GameController extends Controller
         }
     }
 
-
-
     public function gamePublishStatus(Request $request){
         $gameId = $request->game_id;
         $value = 0;
@@ -721,4 +713,36 @@ class GameController extends Controller
             return response()->json(['error' => 'Game id required'],400);
         }
     }
+
+    public function getGameCardBalance(Request $request)
+    {
+        $gameId = $request->game_id;
+
+        $balanceList = [
+            1 => ['symbol' => 'Heart', 'balance' => 0],
+            2 => ['symbol' => 'Ace', 'balance' => 0],
+            3 => ['symbol' => 'Claver', 'balance' => 0],
+            4 => ['symbol' => 'Diamond', 'balance' => 0],
+            5 => ['symbol' => 'Moon', 'balance' => 0],
+            6 => ['symbol' => 'Flag', 'balance' => 0]
+        ];
+
+        $game = Game::find($gameId);
+        $cardLimit = $game->symbol_limit;
+
+        $usersGameJoins = UserGameJoin::where('game_id', $gameId)->get();
+
+        foreach ($balanceList as $card => $info) {
+            $totalJoinedAmount = $usersGameJoins->where('user_card', $card)->sum('joined_amount');
+            $balanceList[$card]['balance'] = $cardLimit - $totalJoinedAmount;
+        }
+
+        return response()->json([
+            'game_id' => $gameId,
+            'card_limit' => $cardLimit,
+            'balances' => $balanceList
+        ]);
+    }
+
+
 }
