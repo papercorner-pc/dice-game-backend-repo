@@ -188,6 +188,11 @@ class GameController extends Controller
                 return response()->json(['message' => 'User amount limit exceeded.'], 400);
             }
 
+            if ($user->balance < $data['joined_amount']) {
+                return response()->json(['message' => 'Insufficient balance.'], 400);
+            }
+
+            $user->withdraw($data['joined_amount']);
             $gameJoin = UserGameJoin::create([
                 'user_id' => $user->id,
                 'game_id' => $data['game_id'],
@@ -395,15 +400,26 @@ class GameController extends Controller
             'game_id' => 'required'
         ]);
 
-        $usersJoinedGames = UserGameJoin::with(['user', 'userGameLogs'])
-            ->where('game_id', $validatedData['game_id'])
-            ->get();
+        $adminEarnings = '';
+
+        $authUser = Auth::user();
+        $agentCreatedUsers = User::where('created_by', $authUser->id)->pluck('id');
+
+        if($authUser->is_super_admin == 1){
+            $usersJoinedGames = UserGameJoin::with(['user', 'userGameLogs'])
+                ->where('game_id', $validatedData['game_id'])
+                ->get();
+            $adminEarnings = AdminEarningLog::where('game_id', $validatedData['game_id'])->get();
+        }else{
+            $usersJoinedGames = UserGameJoin::with(['user', 'userGameLogs'])
+                ->where('game_id', $validatedData['game_id'])
+                ->whereIn('user_id', $agentCreatedUsers)
+                ->get();
+        }
 
         if ($usersJoinedGames->isEmpty()) {
             return response()->json(['message' => 'No users found for this game'], 200);
         }
-
-        $adminEarnings = AdminEarningLog::where('game_id', $validatedData['game_id'])->get();
 
         $userDetails = $usersJoinedGames->map(function ($usersJoinedGame) {
             $user = $usersJoinedGame->user;
