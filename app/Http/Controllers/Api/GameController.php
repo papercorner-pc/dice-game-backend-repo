@@ -159,6 +159,7 @@ class GameController extends Controller
             $game = Game::find($data['game_id']);
 
             $totalJoins = UserGameJoin::where('game_id', $data['game_id'])->count();
+
             if ($totalJoins >= $game->entry_limit) {
                 return response()->json(['message' => 'Limit exceeds, please join another game.'], 400);
             }
@@ -167,30 +168,37 @@ class GameController extends Controller
                 return response()->json(['message' => 'Minimum amount ' . $game->min_fee . ' required.'], 400);
             }
 
+            $userAmountLimit = $game->user_amount_limit;
+            $symbolLimit = $game->symbol_limit;
+
             $existingJoins = UserGameJoin::where('user_id', $user->id)
                 ->where('game_id', $data['game_id'])
+                ->where('user_card', $data['user_card'])
+                ->get();
+
+            $allJoinedUsers = UserGameJoin::where('game_id', $data['game_id'])
+                ->where('user_card', $data['user_card'])
                 ->get();
 
             $userJoinedTotalAmount = 0;
-            $userCardsUsed = [];
+            $usersCardLimit = 0;
 
             foreach ($existingJoins as $existingJoin) {
                 $userJoinedTotalAmount += (float)$existingJoin->joined_amount;
-                $userCardsUsed[] = $existingJoin->user_card;
             }
 
-            $totalGameAmount = UserGameJoin::where('game_id', $data['game_id'])->where('user_card', $data['user_card'])->sum('joined_amount');
-
-            if ($totalGameAmount + $data['joined_amount'] > $game->symbol_limit) {
-                return response()->json(['message' => 'Game card limit exceeded.'], 400);
-            }
-            if ($userJoinedTotalAmount + $data['joined_amount'] > $game->user_amount_limit) {
-                return response()->json(['message' => 'User amount limit exceeded.'], 400);
+            foreach ($allJoinedUsers as $allJoinedUser){
+                $usersCardLimit += (float)$existingJoin->joined_amount;
             }
 
-            if ($user->balance < $data['joined_amount']) {
-                return response()->json(['message' => 'Insufficient balance.'], 400);
+            if($userJoinedTotalAmount + $data['joined_amount'] > $userAmountLimit){
+                return response()->json(['status' => 'error', 'message' => 'User amount limit exceeds for this card'], 400);
             }
+
+            if($usersCardLimit + $data['joined_amount'] > $symbolLimit){
+                return response()->json(['status' => 'error', 'message' => 'User amount limit exceeds for this card'], 400);
+            }
+
 
             $user->withdraw($data['joined_amount']);
             $gameJoin = UserGameJoin::create([

@@ -20,7 +20,6 @@ Route::get('/login', function() {
 
 Route::middleware(['superadmin','auth:sanctum'])->group(function () {
     Route::post('admin/create-game', [GameController::class, 'createGame']);
-    Route::post('game/joined-users', [GameController::class, 'userGameList']);
     Route::post('result/announce', [GameController::class, 'announceResult']);
     Route::post('admin/delete-game', [GameController::class, 'deleteGame']);
     Route::post('admin/edit-game', [GameController::class, 'editGame']);
@@ -60,6 +59,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::post('user/change-password', [UserController::class, 'changeUserPassword']);
 
     Route::post('game/card-balance', [GameController::class, 'getGameCardBalance']);
+    Route::post('game/joined-users', [GameController::class, 'userGameList']);
 });
 
 
