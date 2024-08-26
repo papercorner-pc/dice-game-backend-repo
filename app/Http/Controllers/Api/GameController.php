@@ -758,12 +758,12 @@ class GameController extends Controller
         $gameId = $request->game_id;
 
         $balanceList = [
-            1 => ['symbol' => 'Heart', 'balance' => 0],
-            2 => ['symbol' => 'Ace', 'balance' => 0],
-            3 => ['symbol' => 'Claver', 'balance' => 0],
-            4 => ['symbol' => 'Diamond', 'balance' => 0],
-            5 => ['symbol' => 'Moon', 'balance' => 0],
-            6 => ['symbol' => 'Flag', 'balance' => 0]
+            1 => ['symbol' => 'Heart', 'balance' => 0, 'joins' => 0],
+            2 => ['symbol' => 'Ace', 'balance' => 0, 'joins' => 0],
+            3 => ['symbol' => 'Claver', 'balance' => 0, 'joins' => 0],
+            4 => ['symbol' => 'Diamond', 'balance' => 0, 'joins' => 0],
+            5 => ['symbol' => 'Moon', 'balance' => 0, 'joins' => 0],
+            6 => ['symbol' => 'Flag', 'balance' => 0, 'joins' => 0]
         ];
 
         $game = Game::find($gameId);
@@ -773,7 +773,10 @@ class GameController extends Controller
 
         foreach ($balanceList as $card => $info) {
             $totalJoinedAmount = $usersGameJoins->where('user_card', $card)->sum('joined_amount');
+            $joinsCount = $usersGameJoins->where('user_card', $card)->count();
+
             $balanceList[$card]['balance'] = $cardLimit - $totalJoinedAmount;
+            $balanceList[$card]['joins'] = $joinsCount;
         }
 
         return response()->json([
@@ -782,6 +785,7 @@ class GameController extends Controller
             'balances' => $balanceList
         ]);
     }
+
 
 
 }
