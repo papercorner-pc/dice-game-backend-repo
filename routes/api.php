@@ -60,6 +60,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
 
     Route::post('game/card-balance', [GameController::class, 'getGameCardBalance']);
     Route::post('game/joined-users', [GameController::class, 'userGameList']);
+    Route::post('game/delete-join', [GameController::class, 'deleteUserGameJoin']);
 });
 
 
