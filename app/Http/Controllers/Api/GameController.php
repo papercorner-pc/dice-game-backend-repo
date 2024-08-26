@@ -786,6 +786,44 @@ class GameController extends Controller
         ]);
     }
 
+    public function deleteUserGameJoin(Request $request)
+    {
+        $type = $request->type;
+        $gameId = $request->game_id;
+        $user = Auth::user();
+
+        $game = Game::find($gameId);
+        if (!$game) {
+            return response()->json(['error' => 'Game not found'], 400);
+        }
+
+        $userGameJoinQ = UserGameJoin::where('game_id', $gameId)->where('user_id', $user->id);
+
+        if ($type == 'single') {
+            $userLatestJoin = $userGameJoinQ->latest()->first();
+            if ($userLatestJoin) {
+                $joinedAmount = $userLatestJoin->joined_amount;
+                $userLatestJoin->delete();
+                $user->deposit($joinedAmount);
+                return response()->json(['message' => 'Latest game join deleted and amount refunded successfully'], 200);
+            } else {
+                return response()->json(['error' => 'You are not joined in this game'], 400);
+            }
+        } elseif ($type == 'bulk') {
+            $userJoins = $userGameJoinQ->get();
+            if ($userJoins->isEmpty()) {
+                return response()->json(['error' => 'You are not joined in this game'], 400);
+            }
+
+            $totalRefundAmount = $userJoins->sum('joined_amount');
+            $userGameJoinQ->delete();
+            $user->deposit($totalRefundAmount);
+
+            return response()->json(['message' => 'All game joins deleted and amount refunded successfully'], 200);
+        } else {
+            return response()->json(['error' => 'Invalid type'], 400);
+        }
+    }
 
 
 }
