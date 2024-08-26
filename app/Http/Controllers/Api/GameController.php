@@ -683,6 +683,7 @@ class GameController extends Controller
             return response()->json(['message' => 'Game is already published and cannot be edited'], 400);
         }
 
+
         if ($request->has('match_name')) {
             $game->match_name = $request->match_name;
         }
@@ -692,17 +693,11 @@ class GameController extends Controller
         if ($request->has('entry_limit')) {
             $game->entry_limit = $request->entry_limit;
         }
-        if ($request->has('start_time')) {
-            $game->start_time = $request->start_time;
+        if ($request->has('user_limit')) {
+            $game->user_amount_limit = $request->user_limit;
         }
-        if ($request->has('start_date')) {
-            $game->start_date = $this->transformDate($request->start_date);
-        }
-        if ($request->has('end_time')) {
-            $game->end_time = $request->end_time;
-        }
-        if ($request->has('end_date')) {
-            $game->end_date = $this->transformDate($request->end_date);
+        if ($request->has('symbol_limit')) {
+            $game->symbol_limit = $request->symbol_limit;
         }
 
         $game->save();
