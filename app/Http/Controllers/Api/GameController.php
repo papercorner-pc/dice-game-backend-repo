@@ -567,15 +567,32 @@ class GameController extends Controller
             }
 
             $userGameList = UserGameJoin::where('game_id', $request->game_id)
-                ->with('userGameLogs') // Load the related userGameLogs
+                ->with('userGameLogs')
                 ->get();
+
+            $userTotalInvestment = 0;
+
             $gameStatus = GameStatusLog::where('game_id', $request->game_id)->first();
 
             $userEarnings = 0;
+            $result = [];
+            $userEarnings = 0;
+
             if ($gameStatus && $gameStatus->game_status == 1) {
-                $userGameLogs = UserGameLog::where('game_id', $request->game_id)
-                    ->where('user_id', $user->id)
-                    ->get();
+                $userGameLogsQ = UserGameLog::where('game_id', $request->game_id)
+                    ->where('user_id', $user->id);
+
+                $userGameLogs = $userGameLogsQ->get();
+                $userGameLogFirst = $userGameLogsQ->first();
+
+                if ($userGameLogFirst && $userGameLogFirst->result_dice) {
+                    $diceResults = json_decode($userGameLogFirst->result_dice, true);
+                    $result = [
+                        'dice_1' => $diceResults[0] ?? null,
+                        'dice_2' => $diceResults[1] ?? null,
+                        'dice_3' => $diceResults[2] ?? null,
+                    ];
+                }
 
                 foreach ($userGameLogs as $userGameLog) {
                     $userEarnings += $userGameLog->game_earning;
@@ -585,6 +602,7 @@ class GameController extends Controller
             // Prepare the list data
             $userGameListData = [];
             foreach ($userGameList as $userGame) {
+                $userTotalInvestment += $userGame->joined_amount;
                 if ($userGame->userGameLogs->isNotEmpty()) {
                     foreach ($userGame->userGameLogs as $userGameLog) {
                         $userGameListData[] = [
@@ -610,7 +628,9 @@ class GameController extends Controller
                     'name' => $game->match_name,
                 ],
                 'userEarnings' => $userEarnings,
-                'userGameList' => $userGameListData
+                'userGameList' => $userGameListData,
+                'user_total_investment' => $userTotalInvestment,
+                'result' => $result
             ], 200);
 
         } catch (\Exception $e) {
@@ -683,6 +703,7 @@ class GameController extends Controller
             return response()->json(['message' => 'Game is already published and cannot be edited'], 400);
         }
 
+
         if ($request->has('match_name')) {
             $game->match_name = $request->match_name;
         }
@@ -692,17 +713,11 @@ class GameController extends Controller
         if ($request->has('entry_limit')) {
             $game->entry_limit = $request->entry_limit;
         }
-        if ($request->has('start_time')) {
-            $game->start_time = $request->start_time;
+        if ($request->has('user_limit')) {
+            $game->user_amount_limit = $request->user_limit;
         }
-        if ($request->has('start_date')) {
-            $game->start_date = $this->transformDate($request->start_date);
-        }
-        if ($request->has('end_time')) {
-            $game->end_time = $request->end_time;
-        }
-        if ($request->has('end_date')) {
-            $game->end_date = $this->transformDate($request->end_date);
+        if ($request->has('symbol_limit')) {
+            $game->symbol_limit = $request->symbol_limit;
         }
 
         $game->save();
@@ -743,12 +758,12 @@ class GameController extends Controller
         $gameId = $request->game_id;
 
         $balanceList = [
-            1 => ['symbol' => 'Heart', 'balance' => 0],
-            2 => ['symbol' => 'Ace', 'balance' => 0],
-            3 => ['symbol' => 'Claver', 'balance' => 0],
-            4 => ['symbol' => 'Diamond', 'balance' => 0],
-            5 => ['symbol' => 'Moon', 'balance' => 0],
-            6 => ['symbol' => 'Flag', 'balance' => 0]
+            1 => ['symbol' => 'Heart', 'balance' => 0, 'joins' => 0],
+            2 => ['symbol' => 'Ace', 'balance' => 0, 'joins' => 0],
+            3 => ['symbol' => 'Claver', 'balance' => 0, 'joins' => 0],
+            4 => ['symbol' => 'Diamond', 'balance' => 0, 'joins' => 0],
+            5 => ['symbol' => 'Moon', 'balance' => 0, 'joins' => 0],
+            6 => ['symbol' => 'Flag', 'balance' => 0, 'joins' => 0]
         ];
 
         $game = Game::find($gameId);
@@ -758,7 +773,10 @@ class GameController extends Controller
 
         foreach ($balanceList as $card => $info) {
             $totalJoinedAmount = $usersGameJoins->where('user_card', $card)->sum('joined_amount');
+            $joinsCount = $usersGameJoins->where('user_card', $card)->count();
+
             $balanceList[$card]['balance'] = $cardLimit - $totalJoinedAmount;
+            $balanceList[$card]['joins'] = $joinsCount;
         }
 
         return response()->json([
@@ -767,6 +785,7 @@ class GameController extends Controller
             'balances' => $balanceList
         ]);
     }
+
 
 
 }
