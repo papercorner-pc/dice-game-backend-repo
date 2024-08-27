@@ -759,7 +759,6 @@ class GameController extends Controller
     public function getGameCardBalance(Request $request)
     {
         $gameId = $request->game_id;
-
         $balanceList = [
             1 => ['symbol' => 'Heart', 'balance' => 0, 'joins' => 0],
             2 => ['symbol' => 'Ace', 'balance' => 0, 'joins' => 0],
@@ -769,9 +768,13 @@ class GameController extends Controller
             6 => ['symbol' => 'Flag', 'balance' => 0, 'joins' => 0]
         ];
 
-        $game = Game::find($gameId);
-        $cardLimit = $game->symbol_limit;
+        $game = Game::with('gameLog')->find($gameId);
 
+        if(!$game){
+            return response()->json(['error' => 'Game not found'], 400);
+        }
+        $countDown = $game->gameLog->countdown;
+        $cardLimit = $game->symbol_limit;
         $usersGameJoins = UserGameJoin::where('game_id', $gameId)->get();
 
         foreach ($balanceList as $card => $info) {
@@ -785,7 +788,8 @@ class GameController extends Controller
         return response()->json([
             'game_id' => $gameId,
             'card_limit' => $cardLimit,
-            'balances' => $balanceList
+            'balances' => $balanceList,
+            'countdown' => $countDown
         ]);
     }
 
@@ -826,6 +830,29 @@ class GameController extends Controller
             return response()->json(['message' => 'All game joins deleted and amount refunded successfully'], 200);
         } else {
             return response()->json(['error' => 'Invalid type'], 400);
+        }
+    }
+
+    public function addCountDownToGame(Request $request){
+        $gameId = $request->game_id;
+        $countdown = $request->countdown;
+
+        if(!$countdown){
+            return response()->json(['error' => 'Countdown Required'], 400);
+        }
+        $game = Game::find($gameId);
+        if(!$game){
+            return response()->json(['error' => 'Game not found'], 400);
+
+        }
+        $gameStatusLog = GameStatusLog::where('game_id', $gameId)->first();
+        if($gameStatusLog){
+            $gameStatusLog->countdown = $countdown;
+            $gameStatusLog->save();
+            return response()->json(['success' => 'Countdown addedd successfully', 'data' => $game], 200);
+
+        }else{
+            return response()->json(['error' => 'Game not found'], 400);
         }
     }
 
