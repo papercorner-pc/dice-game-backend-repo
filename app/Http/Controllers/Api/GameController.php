@@ -331,7 +331,7 @@ class GameController extends Controller
                 ->whereDate('updated_at', $currentDate)
                 ->whereNotNull('game_status')
                 ->get();
-            
+
             if ($userGameLogs->isEmpty()) {
                 return response()->json(['games' => [], 'message' => 'No completed games found for user', 'user_details' => $userGameDetails], 200);
             }
@@ -793,6 +793,7 @@ class GameController extends Controller
     {
         $type = $request->type;
         $gameId = $request->game_id;
+        $card = $request->card;
         $user = Auth::user();
 
         $game = Game::find($gameId);
@@ -800,7 +801,7 @@ class GameController extends Controller
             return response()->json(['error' => 'Game not found'], 400);
         }
 
-        $userGameJoinQ = UserGameJoin::where('game_id', $gameId)->where('user_id', $user->id);
+        $userGameJoinQ = UserGameJoin::where('game_id', $gameId)->where('user_id', $user->id)->where('user_card', $card);
 
         if ($type == 'single') {
             $userLatestJoin = $userGameJoinQ->latest()->first();
