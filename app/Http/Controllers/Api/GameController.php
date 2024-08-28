@@ -511,6 +511,9 @@ class GameController extends Controller
             }
 
             $totalResultAmount += $earnings;
+            $user = User::where('id', $joinedUser->user_id)->first();
+
+            $user->deposit($earnings);
 
             $userGameLog->user_id = $joinedUser->user_id;
             $userGameLog->game_id = $validatedData['game_id'];
