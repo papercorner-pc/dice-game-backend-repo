@@ -806,7 +806,6 @@ class GameController extends Controller
         ]);
     }
 
-
     public function deleteUserGameJoin(Request $request)
     {
         $type = $request->type;
@@ -870,7 +869,7 @@ class GameController extends Controller
         }
     }
 
-    public function completeCountDown(){
+    public function completeCountDown(Request $request){
         $gameId = $request->game_id;
         $type = $request->status;
 
@@ -890,6 +889,5 @@ class GameController extends Controller
         }
 
     }
-
 
 }

@@ -64,6 +64,9 @@ Route::middleware(['auth:sanctum'])->group(function (){
 
     Route::post('game/add-countdown', [GameController::class, 'addCountDownToGame']);
     Route::post('game/complete-countdown', [GameController::class, 'completeCountDown']);
+    Route::get('user/wallet-requests', [WalletManageController::class, 'userWalletRequest']);
+
+    Route::put('user/wallet-request/{id}/edit', [WalletManageController::class, 'editWalletRequest']);
+    Route::delete('user/wallet-request/{id}/delete', [WalletManageController::class, 'deleteWalletRequest']);
+
 });
-
-
