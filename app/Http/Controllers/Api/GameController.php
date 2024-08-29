@@ -763,12 +763,12 @@ class GameController extends Controller
     {
         $gameId = $request->game_id;
         $balanceList = [
-            1 => ['symbol' => 'Heart', 'balance' => 0, 'joins' => 0],
-            2 => ['symbol' => 'Ace', 'balance' => 0, 'joins' => 0],
-            3 => ['symbol' => 'Claver', 'balance' => 0, 'joins' => 0],
-            4 => ['symbol' => 'Diamond', 'balance' => 0, 'joins' => 0],
-            5 => ['symbol' => 'Moon', 'balance' => 0, 'joins' => 0],
-            6 => ['symbol' => 'Flag', 'balance' => 0, 'joins' => 0]
+            1 => ['symbol' => 'Heart', 'balance' => 0, 'joins' => 0, 'animation_key' => ''],
+            2 => ['symbol' => 'Ace', 'balance' => 0, 'joins' => 0, 'animation_key' => ''],
+            3 => ['symbol' => 'Claver', 'balance' => 0, 'joins' => 0, 'animation_key' => ''],
+            4 => ['symbol' => 'Diamond', 'balance' => 0, 'joins' => 0, 'animation_key' => ''],
+            5 => ['symbol' => 'Moon', 'balance' => 0, 'joins' => 0, 'animation_key' => ''],
+            6 => ['symbol' => 'Flag', 'balance' => 0, 'joins' => 0, 'animation_key' => '']
         ];
 
         $game = Game::with('gameLog')->find($gameId);
@@ -776,6 +776,7 @@ class GameController extends Controller
         if(!$game){
             return response()->json(['error' => 'Game not found'], 400);
         }
+
         $countDown = $game->gameLog->countdown;
         $countDownStatus = $game->gameLog->countdown_status;
         $cardLimit = $game->symbol_limit;
@@ -784,6 +785,13 @@ class GameController extends Controller
         foreach ($balanceList as $card => $info) {
             $totalJoinedAmount = $usersGameJoins->where('user_card', $card)->sum('joined_amount');
             $joinsCount = $usersGameJoins->where('user_card', $card)->count();
+
+            // Get the last join for the current card
+            $userGameLastJoin = $usersGameJoins->where('user_card', $card)->last();
+
+            if($userGameLastJoin){
+                $balanceList[$card]['animation_key'] = $userGameLastJoin->joined_amount . '/' . $userGameLastJoin->user_card;
+            }
 
             $balanceList[$card]['balance'] = $cardLimit - $totalJoinedAmount;
             $balanceList[$card]['joins'] = $joinsCount;
@@ -797,6 +805,7 @@ class GameController extends Controller
             'countdown_status' => $countDownStatus
         ]);
     }
+
 
     public function deleteUserGameJoin(Request $request)
     {
