@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::table('game_status_logs', function (Blueprint $table) {
             $table->bigInteger('countdown')->nullable()->after('is_publishable');
+            $table->tinyInteger('countdown_status')->default(0)->after('countdown')->comment('0 => pending , 1 => completed');
         });
     }
 
@@ -23,6 +24,7 @@ return new class extends Migration
     {
         Schema::table('game_status_logs', function (Blueprint $table) {
             $table->dropColumn('countdown');
+            $table->dropColumn('countdown_status');
         });
     }
 };

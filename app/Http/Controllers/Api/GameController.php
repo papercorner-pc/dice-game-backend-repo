@@ -511,6 +511,9 @@ class GameController extends Controller
             }
 
             $totalResultAmount += $earnings;
+            $user = User::where('id', $joinedUser->user_id)->first();
+
+            $user->deposit($earnings);
 
             $userGameLog->user_id = $joinedUser->user_id;
             $userGameLog->game_id = $validatedData['game_id'];
@@ -854,6 +857,27 @@ class GameController extends Controller
         }else{
             return response()->json(['error' => 'Game not found'], 400);
         }
+    }
+
+    public function completeCountDown(){
+        $gameId = $request->game_id;
+        $type = $request->status;
+
+        $game = Game::find($gameId);
+        if(!$game){
+            return response()->json(['error' => 'Game not found'], 400);
+        }
+
+        $gameStatusLog = GameStatusLog::where('game_id', $gameId)->first();
+        if($gameStatusLog){
+            $gameStatusLog->countdown_status = $type;
+            $gameStatusLog->save();
+            return response()->json(['success' => 'status updated successfully', 'data' => $game], 200);
+
+        }else{
+            return response()->json(['error' => 'Game not found'], 400);
+        }
+
     }
 
 

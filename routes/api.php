@@ -63,6 +63,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
     Route::post('game/delete-join', [GameController::class, 'deleteUserGameJoin']);
 
     Route::post('game/add-countdown', [GameController::class, 'addCountDownToGame']);
+    Route::post('game/complete-countdown', [GameController::class, 'completeCountDown']);
 });
 
 
