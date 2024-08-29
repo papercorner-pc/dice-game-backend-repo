@@ -777,6 +777,7 @@ class GameController extends Controller
             return response()->json(['error' => 'Game not found'], 400);
         }
         $countDown = $game->gameLog->countdown;
+        $countDownStatus = $game->gameLog->countdown_status;
         $cardLimit = $game->symbol_limit;
         $usersGameJoins = UserGameJoin::where('game_id', $gameId)->get();
 
@@ -792,7 +793,8 @@ class GameController extends Controller
             'game_id' => $gameId,
             'card_limit' => $cardLimit,
             'balances' => $balanceList,
-            'countdown' => $countDown
+            'countdown' => $countDown,
+            'countdown_status' => $countDownStatus
         ]);
     }
 
