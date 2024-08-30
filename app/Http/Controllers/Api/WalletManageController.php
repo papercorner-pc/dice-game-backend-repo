@@ -204,7 +204,7 @@ class WalletManageController extends Controller
         foreach ($allAgentReqs as $agentReq) {
             if ($agentReq->status == 0) {
                 $agentReq->status = 1;
-                $agentReq->wallet_status = 1; 
+                $agentReq->wallet_status = 1;
                 $agentReq->approved_at = now();
                 $agentReq->save();
             }
@@ -219,7 +219,6 @@ class WalletManageController extends Controller
             return $req->status == 1;
         });
     }
-
 
     public function adminWalletRecharge(Request $request)
     {
@@ -298,4 +297,70 @@ class WalletManageController extends Controller
             return response()->json(['status'=>'error', 'message' => 'You have no access'], 400);
         }
     }
+
+    public function userWalletRequest(){
+        $user = Auth::user();
+        if($user){
+            if($user->is_agent == 1){
+                $agentWalletReq = AgentWalletRequest::where('wallet_for', $user->id)->get();
+                return response()->json(['success' => 'Agent wallet request fetched successfully', 'data' => $agentWalletReq], 200);
+            }else{
+                $userWalletReq = DealerWalletRequest::where('wallet_for', $user->id)->get();
+                return response()->json(['success' => 'Dealer wallet request fetched successfully', 'data' => $userWalletReq], 200);
+            }
+
+        }else{
+            return response()->json(['error' => 'Game not found'], 400);
+        }
+    }
+
+    public function editWalletRequest(Request $request, $id)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'User not authenticated'], 401);
+        }
+
+        $walletRequest = $user->is_agent
+            ? AgentWalletRequest::where('id', $id)->where('wallet_for', $user->id)->first()
+            : DealerWalletRequest::where('id', $id)->where('wallet_for', $user->id)->first();
+
+        if (!$walletRequest) {
+            return response()->json(['status' => 'error', 'message' => 'Wallet request not found'], 404);
+        }
+
+        $requestAmount = (float)$request->amount;
+        if ($requestAmount <= 0) {
+            return response()->json(['status' => 'error', 'message' => 'Request amount must be greater than 0'], 400);
+        }
+
+        $walletRequest->amount = $requestAmount;
+        $walletRequest->save();
+
+        return response()->json(['status' => 'success', 'message' => 'Wallet request updated successfully', 'data' => $walletRequest], 200);
+    }
+
+    public function deleteWalletRequest($id)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['status' => 'error', 'message' => 'User not authenticated'], 401);
+        }
+
+        $walletRequest = $user->is_agent
+            ? AgentWalletRequest::where('id', $id)->where('wallet_for', $user->id)->first()
+            : DealerWalletRequest::where('id', $id)->where('wallet_for', $user->id)->first();
+
+        if (!$walletRequest) {
+            return response()->json(['status' => 'error', 'message' => 'Wallet request not found'], 404);
+        }
+
+        $walletRequest->delete();
+
+        return response()->json(['status' => 'success', 'message' => 'Wallet request deleted successfully'], 200);
+    }
+
+
 }
