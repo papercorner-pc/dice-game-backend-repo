@@ -200,7 +200,7 @@ class UserController extends Controller
         try {
             $validator = $request->validate([
                 'phone_number' => 'unique:users,phone_number',
-                'username' => 'required|string',
+                'username' => 'required|string|unique:users,name',
                 'password' => 'required|string',
                 'type' => 'required|string',
             ]);
