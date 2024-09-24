@@ -48,8 +48,8 @@ class GameController extends Controller
 
             $tempAgentTokenData = [];
             $gameUsers = User::all();
-            foreach ($gameUsers as $gameUser){
-                if($gameUser->fcm_token){
+            foreach ($gameUsers as $gameUser) {
+                if ($gameUser->fcm_token) {
                     $tempAgentTokenData['device_token'] = $gameUser->fcm_token;
                     $tempAgentTokenData['game_id'] = $game->id;
                     $tempAgentTokenData['game_type'] = 'game_created';
@@ -70,7 +70,7 @@ class GameController extends Controller
                     'show_in_foreground' => true,
                 ];
                 $fcmServiceObj = new SendNotification();
-                if(isset($tempAgentTokenData['device_token'])){
+                if (isset($tempAgentTokenData['device_token'])) {
                     $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
                 }
                 return response()->json(['message' => 'New game created successfully'], 200);
@@ -112,8 +112,8 @@ class GameController extends Controller
 
             $tempAgentTokenData = [];
             $gameUsers = User::all();
-            foreach ($gameUsers as $gameUser){
-                if($gameUser->fcm_token){
+            foreach ($gameUsers as $gameUser) {
+                if ($gameUser->fcm_token) {
                     $tempAgentTokenData['device_token'] = $gameUser->fcm_token;
                     $tempAgentTokenData['game_id'] = $game->id;
                     $tempAgentTokenData['game_type'] = 'game_created';
@@ -134,7 +134,7 @@ class GameController extends Controller
                     'show_in_foreground' => true,
                 ];
                 $fcmServiceObj = new SendNotification();
-                if(isset($tempAgentTokenData['device_token'])){
+                if (isset($tempAgentTokenData['device_token'])) {
                     $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
                 }
                 return response()->json(['message' => 'New game created successfully'], 200);
@@ -189,15 +189,15 @@ class GameController extends Controller
                 $userJoinedTotalAmount += (float)$existingJoin->joined_amount;
             }
 
-            foreach ($allJoinedUsers as $allJoinedUser){
+            foreach ($allJoinedUsers as $allJoinedUser) {
                 $usersCardLimit += (float)$allJoinedUser->joined_amount;
             }
 
-            if($userJoinedTotalAmount + $data['joined_amount'] > $userAmountLimit){
+            if ($userJoinedTotalAmount + $data['joined_amount'] > $userAmountLimit) {
                 return response()->json(['status' => 'error', 'message' => 'User amount limit exceeds for this card'], 400);
             }
 
-            if($usersCardLimit + $data['joined_amount'] > $symbolLimit){
+            if ($usersCardLimit + $data['joined_amount'] > $symbolLimit) {
                 return response()->json(['status' => 'error', 'message' => 'User amount limit exceeds for this card'], 400);
             }
 
@@ -222,6 +222,7 @@ class GameController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
     public function gameList(Request $request)
     {
         $user = Auth::user();
@@ -254,9 +255,9 @@ class GameController extends Controller
         // Super Admin Logic
         if ($user->is_super_admin == 1) {
             return $this->getGamesForSuperAdmin($validatedData['type'], $currentDate, $userGameDetails);
-        }else if($user->is_agent == 1){
+        } else if ($user->is_agent == 1) {
             return $this->getGamesForAgent($user, $validatedData['type'], $currentDate, $userGameDetails);
-        }else{
+        } else {
             if ($validatedData['type'] == 'upcoming') {
                 $games = Game::with(['gameLog'])
                     ->withCount('usersInGame')
@@ -413,7 +414,6 @@ class GameController extends Controller
 
         return response()->json(['message' => 'Invalid request type', 'user_details' => $userGameDetails], 400);
     }
-
 
     public function gameListOld(Request $request)
     {
@@ -609,12 +609,12 @@ class GameController extends Controller
         $authUser = Auth::user();
         $agentCreatedUsers = User::where('created_by', $authUser->id)->pluck('id');
 
-        if($authUser->is_super_admin == 1){
+        if ($authUser->is_super_admin == 1) {
             $usersJoinedGames = UserGameJoin::with(['user', 'userGameLogs'])
                 ->where('game_id', $validatedData['game_id'])
                 ->get();
             $adminEarnings = AdminEarningLog::where('game_id', $validatedData['game_id'])->get();
-        }else{
+        } else {
             $usersJoinedGames = UserGameJoin::with(['user', 'userGameLogs'])
                 ->where('game_id', $validatedData['game_id'])
                 ->whereIn('user_id', $agentCreatedUsers)
@@ -748,7 +748,7 @@ class GameController extends Controller
 
         $fcmServiceObj = new SendNotification();
 
-        if(isset($tempAgentTokenData['device_token'])){
+        if (isset($tempAgentTokenData['device_token'])) {
             $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
         }
 
@@ -837,14 +837,15 @@ class GameController extends Controller
         }
     }
 
-    public function deleteGame(Request $request){
+    public function deleteGame(Request $request)
+    {
         $gameId = $request->game_id;
-        $tempAgentTokenData= [];
+        $tempAgentTokenData = [];
 
-        if($gameId){
+        if ($gameId) {
             $game = Game::with(['gameLog', 'usersInGame'])->where('id', $gameId)->first();
-            if($game){
-                if($game->gameLog && $game->gameLog->game_status == 1){
+            if ($game) {
+                if ($game->gameLog && $game->gameLog->game_status == 1) {
                     return response()->json(['error' => 'Result already published'], 400);
                 } else {
                     DB::beginTransaction();
@@ -864,17 +865,15 @@ class GameController extends Controller
                         $game->delete();
 
 
-
-
                         $notificationConfigs = [
-                            'title' => 'Game '.$game->match_name.' deleted by admin !!',
+                            'title' => 'Game ' . $game->match_name . ' deleted by admin !!',
                             'body' => 'Check All Details For This Request In App',
                             'soundPlay' => true,
                             'show_in_foreground' => true,
                         ];
 
                         $fcmServiceObj = new SendNotification();
-                        if(isset($tempAgentTokenData['device_token'])){
+                        if (isset($tempAgentTokenData['device_token'])) {
                             $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
                         }
 
@@ -893,7 +892,8 @@ class GameController extends Controller
         }
     }
 
-    public function editGame(Request $request) {
+    public function editGame(Request $request)
+    {
         $game = Game::with('gameLog')->find($request->game_id);
         if (!$game) {
             return response()->json(['message' => 'Game not found'], 404);
@@ -923,7 +923,8 @@ class GameController extends Controller
         return response()->json(['message' => 'Game updated successfully', 'game' => $game], 200);
     }
 
-    private function transformDate($date) {
+    private function transformDate($date)
+    {
         $dateTime = \DateTime::createFromFormat('d/m/Y', $date);
         if ($dateTime) {
             return $dateTime->format('Y-m-d');
@@ -932,23 +933,24 @@ class GameController extends Controller
         }
     }
 
-    public function gamePublishStatus(Request $request){
+    public function gamePublishStatus(Request $request)
+    {
         $gameId = $request->game_id;
         $value = 0;
-        if($request->is_publishable == true){
-             $value = 1;
+        if ($request->is_publishable == true) {
+            $value = 1;
         }
-        if($gameId){
-            $gamePublishStatus = GameStatusLog::where('game_id',$gameId)->first();
-            if($request->is_publishable){
+        if ($gameId) {
+            $gamePublishStatus = GameStatusLog::where('game_id', $gameId)->first();
+            if ($request->is_publishable) {
                 $gamePublishStatus->is_publishable = $value;
                 $gamePublishStatus->save();
-                return response()->json(['success' => 'Game status updated successfully', 'is_publishable' => $gamePublishStatus->is_publishable],200);
-            }else{
-                return response()->json(['success' => 'Game status fetched successfully', 'is_publishable' => $gamePublishStatus->is_publishable],200);
+                return response()->json(['success' => 'Game status updated successfully', 'is_publishable' => $gamePublishStatus->is_publishable], 200);
+            } else {
+                return response()->json(['success' => 'Game status fetched successfully', 'is_publishable' => $gamePublishStatus->is_publishable], 200);
             }
-        }else{
-            return response()->json(['error' => 'Game id required'],400);
+        } else {
+            return response()->json(['error' => 'Game id required'], 400);
         }
     }
 
@@ -967,7 +969,7 @@ class GameController extends Controller
 
         $game = Game::with('gameLog')->find($gameId);
 
-        if(!$game){
+        if (!$game) {
             return response()->json(['error' => 'Game not found'], 400);
         }
 
@@ -983,7 +985,7 @@ class GameController extends Controller
             // Get the last join for the current card
             $userGameLastJoin = $usersGameJoins->where('user_card', $card)->last();
 
-            if($userGameLastJoin){
+            if ($userGameLastJoin) {
                 $balanceList[$card]['animation_key'] = $userGameLastJoin->joined_amount . '/' . $userGameLastJoin->user_card;
             }
 
@@ -1040,48 +1042,60 @@ class GameController extends Controller
         }
     }
 
-    public function addCountDownToGame(Request $request){
+    public function addCountDownToGame(Request $request)
+    {
         $gameId = $request->game_id;
         $countdown = $request->countdown;
 
-        if(!$countdown){
+        if (!$countdown) {
             return response()->json(['error' => 'Countdown Required'], 400);
         }
         $game = Game::find($gameId);
-        if(!$game){
+        if (!$game) {
             return response()->json(['error' => 'Game not found'], 400);
 
         }
         $gameStatusLog = GameStatusLog::where('game_id', $gameId)->first();
-        if($gameStatusLog){
+        if ($gameStatusLog) {
             $gameStatusLog->countdown = $countdown;
             $gameStatusLog->save();
             return response()->json(['success' => 'Countdown addedd successfully', 'data' => $game], 200);
 
-        }else{
+        } else {
             return response()->json(['error' => 'Game not found'], 400);
         }
     }
 
-    public function completeCountDown(Request $request){
+    public function completeCountDown(Request $request)
+    {
         $gameId = $request->game_id;
         $type = $request->status;
 
         $game = Game::find($gameId);
-        if(!$game){
+        if (!$game) {
             return response()->json(['error' => 'Game not found'], 400);
         }
 
         $gameStatusLog = GameStatusLog::where('game_id', $gameId)->first();
-        if($gameStatusLog){
+        if ($gameStatusLog) {
             $gameStatusLog->countdown_status = $type;
             $gameStatusLog->save();
             return response()->json(['success' => 'status updated successfully', 'data' => $game], 200);
 
-        }else{
+        } else {
             return response()->json(['error' => 'Game not found'], 400);
         }
 
+    }
+
+    public function getPreviousGame()
+    {
+        $previousGame = Game::latest()->first();
+        if($previousGame){
+            return response()->json(['status' => 'success', 'data' => $previousGame], 200);
+        }else{
+            return response()->json(['status' => 'error', 'message' => 'no previous game found'], 400);
+        }
     }
 
 }

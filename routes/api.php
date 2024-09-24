@@ -23,6 +23,7 @@ Route::middleware(['superadmin','auth:sanctum'])->group(function () {
     Route::post('result/announce', [GameController::class, 'announceResult']);
     Route::post('admin/delete-game', [GameController::class, 'deleteGame']);
     Route::post('admin/edit-game', [GameController::class, 'editGame']);
+    Route::get('get/previous-game', [GameController::class, 'getPreviousGame']);
     Route::post('agent/wallet-status-update', [WalletManageController::class, 'agentRequestStatusUpdate']);
     Route::post('admin/wallet-recharge', [WalletManageController::class, 'adminWalletRecharge']);
 
