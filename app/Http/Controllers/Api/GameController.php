@@ -177,6 +177,7 @@ class GameController extends Controller
                 ->where('user_card', $data['user_card'])
                 ->get();
 
+
             $allJoinedUsers = UserGameJoin::where('game_id', $data['game_id'])
                 ->where('user_card', $data['user_card'])
                 ->get();
@@ -189,7 +190,7 @@ class GameController extends Controller
             }
 
             foreach ($allJoinedUsers as $allJoinedUser){
-                $usersCardLimit += (float)$existingJoin->joined_amount;
+                $usersCardLimit += (float)$allJoinedUser->joined_amount;
             }
 
             if($userJoinedTotalAmount + $data['joined_amount'] > $userAmountLimit){
@@ -221,8 +222,200 @@ class GameController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
     public function gameList(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $validatedData = $request->validate([
+            'type' => 'required|string|in:upcoming,live,completed',
+        ]);
+
+        $timeZone = 'Asia/Kolkata';
+        $currentDateTime = Carbon::now($timeZone);
+        $currentDate = $currentDateTime->format('Y-m-d');
+        $currentTime = $currentDateTime->format('H:i:s');
+
+        $userGame = UserGameJoin::where('user_id', $user->id)->get();
+        $userGameLogs = UserGameLog::where('user_id', $user->id)->get();
+        $userGameEarning = $userGameLogs->sum('game_earning');
+
+        $userGameDetails = [
+            'total_joined_game' => $userGame->count(),
+            'total_win' => $userGameLogs->where('game_status', 1)->count(),
+            'total_loss' => $userGameLogs->where('game_status', 0)->count(),
+            'user_name' => $user->name,
+            'total_earning' => $userGameEarning,
+        ];
+
+        // Super Admin Logic
+        if ($user->is_super_admin == 1) {
+            return $this->getGamesForSuperAdmin($validatedData['type'], $currentDate, $userGameDetails);
+        }else if($user->is_agent == 1){
+            return $this->getGamesForAgent($user, $validatedData['type'], $currentDate, $userGameDetails);
+        }else{
+            if ($validatedData['type'] == 'upcoming') {
+                $games = Game::with(['gameLog'])
+                    ->withCount('usersInGame')
+                    ->whereHas('gameLog', function ($query) {
+                        $query->where('game_status', 0);
+                    })
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+                if ($games->isEmpty()) {
+                    return response()->json(['games' => [], 'message' => 'No upcoming games found', 'user_details' => $userGameDetails], 200);
+                }
+
+                return response()->json(['games' => $games->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+            }
+
+            if ($validatedData['type'] == 'live') {
+                $userJoinedGames = UserGameJoin::where('user_id', $user->id)->pluck('game_id');
+
+                $liveGameLogs = UserGameLog::whereIn('game_id', $userJoinedGames)
+                    ->whereNull('game_status')
+                    ->get();
+
+                $liveGameIds = $userJoinedGames->filter(function ($gameId) {
+                    return !UserGameLog::where('game_id', $gameId)
+                        ->whereNotNull('game_status')
+                        ->exists();
+                });
+
+                if ($liveGameIds->isEmpty()) {
+                    return response()->json(['games' => [], 'message' => 'No live games found for user', 'user_details' => $userGameDetails], 200);
+                }
+
+                $games = Game::withCount('usersInGame')
+                    ->whereIn('id', $liveGameIds)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+                if ($games->isEmpty()) {
+                    return response()->json(['games' => [], 'message' => 'No live games found for user', 'user_details' => $userGameDetails], 200);
+                }
+
+                return response()->json(['games' => $games->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+            }
+
+            if ($validatedData['type'] == 'completed') {
+                $userGameLogs = UserGameLog::where('user_id', $user->id)
+                    ->whereDate('updated_at', $currentDate)
+                    ->whereNotNull('game_status')
+                    ->get();
+
+                if ($userGameLogs->isEmpty()) {
+                    return response()->json(['games' => [], 'message' => 'No completed games found for user', 'user_details' => $userGameDetails], 200);
+                }
+
+                $gameIds = $userGameLogs->pluck('game_id')->unique();
+
+                $games = Game::withCount('usersInGame')
+                    ->whereIn('id', $gameIds)
+                    ->get();
+
+                if ($games->isEmpty()) {
+                    return response()->json(['games' => [], 'message' => 'No completed games found for user', 'user_details' => $userGameDetails], 200);
+                }
+
+                return response()->json(['games' => $games->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+            }
+        }
+
+        return response()->json(['message' => 'Invalid request type', 'user_details' => $userGameDetails], 400);
+    }
+
+    private function getGamesForSuperAdmin($type, $currentDate, $userGameDetails)
+    {
+        if ($type == 'upcoming') {
+            $upcomingGames = Game::withCount('usersInGame')->with('gameLog')
+                ->whereHas('gameLog', function ($query) {
+                    $query->where('game_status', 0);
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+            return response()->json(['games' => $upcomingGames->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+        }
+
+        if ($type == 'completed') {
+            $completedGames = Game::withCount('usersInGame')->with('gameLog')
+                ->whereHas('gameLog', function ($query) use ($currentDate) {
+                    $query->where('game_status', 1)->whereDate('updated_at', $currentDate);
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json(['games' => $completedGames->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+        }
+
+        return response()->json(['message' => 'Invalid request type', 'user_details' => $userGameDetails], 400);
+    }
+
+    private function getGamesForAgent($user, $type, $currentDate, $userGameDetails)
+    {
+        $agentUnderUsers = User::where('created_by', $user->id)->pluck('id');
+        $userJoinedGames = UserGameJoin::whereIn('user_id', $agentUnderUsers)->pluck('game_id');
+
+        if ($type == 'upcoming') {
+            $upcomingGames = Game::with(['gameLog'])
+                ->withCount('usersInGame')
+                ->whereIn('id', $userJoinedGames)
+                ->whereHas('gameLog', function ($query) {
+                    $query->where('game_status', 0);
+                })
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json(['games' => $upcomingGames->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+        }
+
+        if ($type == 'live') {
+            $liveGameLogs = UserGameLog::whereIn('game_id', $userJoinedGames)
+                ->whereNull('game_status')
+                ->get();
+
+            $liveGameIds = $liveGameLogs->pluck('game_id')->unique();
+
+            if ($liveGameIds->isEmpty()) {
+                return response()->json(['games' => [], 'message' => 'No live games found for users under agent', 'user_details' => $userGameDetails], 200);
+            }
+
+            $liveGames = Game::withCount('usersInGame')
+                ->whereIn('id', $liveGameIds)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json(['games' => $liveGames->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+        }
+
+        if ($type == 'completed') {
+            $completedGameLogs = UserGameLog::whereIn('user_id', $agentUnderUsers)
+                ->whereDate('updated_at', $currentDate)
+                ->whereNotNull('game_status')
+                ->get();
+
+            if ($completedGameLogs->isEmpty()) {
+                return response()->json(['games' => [], 'message' => 'No completed games found for users under agent', 'user_details' => $userGameDetails], 200);
+            }
+
+            $completedGameIds = $completedGameLogs->pluck('game_id')->unique();
+
+            $completedGames = Game::withCount('usersInGame')
+                ->whereIn('id', $completedGameIds)
+                ->get();
+
+            return response()->json(['games' => $completedGames->toArray(), 'message' => 'success', 'user_details' => $userGameDetails], 200);
+        }
+
+        return response()->json(['message' => 'Invalid request type', 'user_details' => $userGameDetails], 400);
+    }
+
+
+    public function gameListOld(Request $request)
     {
         $user = Auth::user();
 
@@ -761,6 +954,7 @@ class GameController extends Controller
 
     public function getGameCardBalance(Request $request)
     {
+        $user = Auth::user();
         $gameId = $request->game_id;
         $balanceList = [
             1 => ['symbol' => 'Heart', 'balance' => 0, 'joins' => 0, 'animation_key' => ''],
@@ -780,7 +974,7 @@ class GameController extends Controller
         $countDown = $game->gameLog->countdown;
         $countDownStatus = $game->gameLog->countdown_status;
         $cardLimit = $game->symbol_limit;
-        $usersGameJoins = UserGameJoin::where('game_id', $gameId)->get();
+        $usersGameJoins = UserGameJoin::where('game_id', $gameId)->where('user_id', $user->id)->get();
 
         foreach ($balanceList as $card => $info) {
             $totalJoinedAmount = $usersGameJoins->where('user_card', $card)->sum('joined_amount');

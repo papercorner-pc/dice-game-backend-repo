@@ -31,8 +31,8 @@ class AuthController extends Controller
     {
         try {
             $registrationData = $request->validate([
-                'name' => 'required',
-                'phone_number' => 'required|string|unique:users,phone_number',
+                'name' => 'required|unique:users,name',
+                'phone_number' => 'string|unique:users,phone_number',
                 'password' => 'required',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -44,7 +44,7 @@ class AuthController extends Controller
 
         $user = User::create([
             'name' => $registrationData['name'],
-            'phone_number' => $registrationData['phone_number'],
+            'phone_number' => $registrationData['phone_number'] ?? null,
             'password' => Hash::make($registrationData['password']),
             'otp' => $otp,
             'otp_valid_till' => $otpValidTill,
