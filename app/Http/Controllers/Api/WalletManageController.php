@@ -233,8 +233,16 @@ class WalletManageController extends Controller
             $agent = User::where('id', $agentId)->first();
             if ($agent) {
                 if ($agent->created_by === $user->id) {
-                    $agent->deposit($rechargeAmount);
-                    return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $agent->name, 'data' => $agent], 200);
+                    if ($request->type = 'recharge') {
+                        $agent->deposit($rechargeAmount);
+                        return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $agent->name, 'data' => $agent], 200);
+                    } elseif ($request->type = 'redeem') {
+                        $agent->withdraw($rechargeAmount);
+                        return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $agent->name, 'data' => $agent], 200);
+                    } else {
+                        return response()->json(['status' => 'error', 'message' => 'Invalid type'], 400);
+                    }
+
                 } else {
                     return response()->json(['status' => 'error', 'message' => 'You have no access to recharge this user'], 400);
                 }
@@ -265,7 +273,7 @@ class WalletManageController extends Controller
         $adminUsers = User::where('is_super_admin', 1)->get();
 
 
-        foreach ($adminUsers as $adminUser){
+        foreach ($adminUsers as $adminUser) {
             $dealerReq = AgentWalletRequest::create([
                 'request_from' => $requestFromId,
                 'request_to' => $adminUser->id,
@@ -285,31 +293,32 @@ class WalletManageController extends Controller
     public function walletRequestList()
     {
         $user = Auth::user();
-        if($user->is_super_admin == 1){
+        if ($user->is_super_admin == 1) {
             $list = AgentWalletRequest::with(['requestUser', 'forUser'])->where('request_to', $user->id)
-            ->where('status', 0)->orderBy('id', 'DESC')->get();
+                ->where('status', 0)->orderBy('id', 'DESC')->get();
             return response()->json(['status' => 'success', 'message' => 'data fetched success', 'data' => $list], 200);
-        }else if ($user->is_agent == 1){
+        } else if ($user->is_agent == 1) {
             $list = DealerWalletRequest::with(['requestUser'])->where('request_to', $user->id)
-            ->where('status', 0)->orderBy('id', 'DESC')->get();
+                ->where('status', 0)->orderBy('id', 'DESC')->get();
             return response()->json(['status' => 'success', 'message' => 'data fetched success', 'data' => $list], 200);
-        }else{
-            return response()->json(['status'=>'error', 'message' => 'You have no access'], 400);
+        } else {
+            return response()->json(['status' => 'error', 'message' => 'You have no access'], 400);
         }
     }
 
-    public function userWalletRequest(){
+    public function userWalletRequest()
+    {
         $user = Auth::user();
-        if($user){
-            if($user->is_agent == 1){
+        if ($user) {
+            if ($user->is_agent == 1) {
                 $agentWalletReq = AgentWalletRequest::where('wallet_for', $user->id)->get();
                 return response()->json(['success' => 'Agent wallet request fetched successfully', 'data' => $agentWalletReq], 200);
-            }else{
+            } else {
                 $userWalletReq = DealerWalletRequest::where('wallet_for', $user->id)->get();
                 return response()->json(['success' => 'Dealer wallet request fetched successfully', 'data' => $userWalletReq], 200);
             }
 
-        }else{
+        } else {
             return response()->json(['error' => 'Game not found'], 400);
         }
     }

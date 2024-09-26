@@ -73,7 +73,7 @@ class GameController extends Controller
                 if (isset($tempAgentTokenData['device_token'])) {
                     $fcmServiceObj->sendPushNotification([$tempAgentTokenData['device_token']], $tempAgentTokenData, $notificationConfigs);
                 }
-                return response()->json(['message' => 'New game created successfully'], 200);
+                return response()->json(['message' => 'New game created successfully', 'game' => $game], 200);
             } else {
                 return response()->json(['message' => 'Something went wrong, please try again later'], 500);
             }
