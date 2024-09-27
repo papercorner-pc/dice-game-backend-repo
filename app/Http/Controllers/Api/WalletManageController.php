@@ -233,12 +233,12 @@ class WalletManageController extends Controller
             $agent = User::where('id', $agentId)->first();
             if ($agent) {
                 if ($agent->created_by === $user->id) {
-                    if ($request->type = 'recharge') {
+                    if ($request->type == 'recharge') {
                         $agent->deposit($rechargeAmount);
                         return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $agent->name, 'data' => $agent], 200);
-                    } elseif ($request->type = 'redeem') {
+                    } elseif ($request->type == 'redeem') {
                         $agent->withdraw($rechargeAmount);
-                        return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $agent->name, 'data' => $agent], 200);
+                        return response()->json(['status' => 'success', 'message' => 'Wallet debited for user ' . $agent->name, 'data' => $agent], 200);
                     } else {
                         return response()->json(['status' => 'error', 'message' => 'Invalid type'], 400);
                     }
