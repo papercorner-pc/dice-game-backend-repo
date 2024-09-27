@@ -58,13 +58,22 @@ class UserController extends Controller
     public function walletHistory()
     {
         $user = Auth::user();
+
         if (!$user) {
             return response()->json(['message' => 'User not found'], 401);
         }
-        $transactions = $user->transactions;
+        $transactions = $user->transactions()
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($transaction) {
+                $transaction->created_at = $transaction->created_at->setTimezone('Asia/Kolkata')->format('Y-m-d H:i:s');
+                return $transaction;
+            });
+
         $balance = $user->balance;
         return response()->json(['transactions' => $transactions, 'balance' => $balance], 200);
     }
+
 
     public function userProfile(Request $request)
     {
