@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GameController;
+use App\Http\Controllers\Api\report\ReportController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SmsController;
 use App\Http\Controllers\Api\WalletManageController;
@@ -69,5 +70,7 @@ Route::middleware(['auth:sanctum'])->group(function (){
 
     Route::put('user/wallet-request/{id}/edit', [WalletManageController::class, 'editWalletRequest']);
     Route::delete('user/wallet-request/{id}/delete', [WalletManageController::class, 'deleteWalletRequest']);
+
+    Route::get('get/daily-report', [ReportController::class, 'gameReport']);
 
 });

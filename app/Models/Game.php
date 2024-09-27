@@ -41,4 +41,9 @@ class Game extends Model
     public function gameLog() {
         return $this->hasOne(GameStatusLog::class, 'game_id', 'id');
     }
+
+    public function adminEarning(){
+        return $this->hasOne(AdminEarningLog::class, 'game_id', 'id');
+
+    }
 }
