@@ -772,8 +772,13 @@ class GameController extends Controller
                     ->whereIn('user_id', $createdUsersId)
                     ->with('userGameLogs')
                     ->get();
+            }else if($user->is_super_admin == 1){
+                $userGameList = UserGameJoin::where('game_id', $request->game_id)
+                    ->with('userGameLogs')
+                    ->get();
             }else{
                 $userGameList = UserGameJoin::where('game_id', $request->game_id)
+                    ->where('user_id', $user->id)
                     ->with('userGameLogs')
                     ->get();
             }
@@ -790,7 +795,9 @@ class GameController extends Controller
                 if($user->is_agent == 1){
                     $userGameLogsQ = UserGameLog::where('game_id', $request->game_id)
                         ->whereIn('user_id', $createdUsersId);
-                }else{
+                } else if($user->is_super_admin == 1){
+                    $userGameLogsQ = UserGameLog::where('game_id', $request->game_id);
+                } else{
                     $userGameLogsQ = UserGameLog::where('game_id', $request->game_id)
                         ->where('user_id', $user->id);
                 }
