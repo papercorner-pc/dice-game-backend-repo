@@ -760,26 +760,41 @@ class GameController extends Controller
         try {
             $user = Auth::user();
             $game = Game::find($request->game_id);
+            $createdUsersId = User::where('created_by', $user->id)->pluck('id');
+
 
             if (!$game) {
                 return response()->json(['error' => 'Game not found'], 404);
             }
 
-            $userGameList = UserGameJoin::where('game_id', $request->game_id)
-                ->with('userGameLogs')
-                ->get();
+            if($user->is_agent == 1) {
+                $userGameList = UserGameJoin::where('game_id', $request->game_id)
+                    ->whereIn('user_id', $createdUsersId)
+                    ->with('userGameLogs')
+                    ->get();
+            }else{
+                $userGameList = UserGameJoin::where('game_id', $request->game_id)
+                    ->with('userGameLogs')
+                    ->get();
+            }
 
             $userTotalInvestment = 0;
 
             $gameStatus = GameStatusLog::where('game_id', $request->game_id)->first();
 
-            $userEarnings = 0;
             $result = [];
             $userEarnings = 0;
 
             if ($gameStatus && $gameStatus->game_status == 1) {
-                $userGameLogsQ = UserGameLog::where('game_id', $request->game_id)
-                    ->where('user_id', $user->id);
+
+                if($user->is_agent == 1){
+                    $userGameLogsQ = UserGameLog::where('game_id', $request->game_id)
+                        ->whereIn('user_id', $createdUsersId);
+                }else{
+                    $userGameLogsQ = UserGameLog::where('game_id', $request->game_id)
+                        ->where('user_id', $user->id);
+                }
+
 
                 $userGameLogs = $userGameLogsQ->get();
                 $userGameLogFirst = $userGameLogsQ->first();
