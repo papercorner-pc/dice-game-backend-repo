@@ -1105,12 +1105,26 @@ class GameController extends Controller
 
     public function getPreviousGame()
     {
+        $today = Carbon::today();
+        $todayGamesCount = Game::whereDate('created_at', $today)->count();
         $previousGame = Game::latest()->first();
-        if($previousGame){
-            return response()->json(['status' => 'success', 'data' => $previousGame], 200);
-        }else{
-            return response()->json(['status' => 'error', 'message' => 'no previous game found'], 400);
+
+        if ($previousGame) {
+            return response()->json([
+                'status' => 'success',
+                'data' => $previousGame,
+                'today_games_count' => $todayGamesCount,
+                'today_date' => $today->toDateString()
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'No previous game found',
+                'today_games_count' => $todayGamesCount,
+                'today_date' => $today->toDateString()
+            ], 400);
         }
     }
+
 
 }
