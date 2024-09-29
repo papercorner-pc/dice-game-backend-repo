@@ -625,6 +625,34 @@ class GameController extends Controller
             return response()->json(['message' => 'No users found for this game'], 200);
         }
 
+        $gameStatus = GameStatusLog::where('game_id', $request->game_id)->first();
+
+        $result = [];
+
+        if ($gameStatus && $gameStatus->game_status == 1) {
+            $createdUsersId = User::where('created_by', $authUser->id)->pluck('id');
+            if ($authUser->is_agent == 1) {
+                $userGameLogsQ = UserGameLog::where('game_id', $request->game_id)
+                    ->whereIn('user_id', $createdUsersId);
+            } else if ($authUser->is_super_admin == 1) {
+                $userGameLogsQ = UserGameLog::where('game_id', $request->game_id);
+            } else {
+                $userGameLogsQ = UserGameLog::where('game_id', $request->game_id)
+                    ->where('user_id', $authUser->id);
+            }
+
+            $userGameLogFirst = $userGameLogsQ->first();
+
+            if ($userGameLogFirst && $userGameLogFirst->result_dice) {
+                $diceResults = json_decode($userGameLogFirst->result_dice, true);
+                $result = [
+                    'dice_1' => $diceResults[0] ?? null,
+                    'dice_2' => $diceResults[1] ?? null,
+                    'dice_3' => $diceResults[2] ?? null,
+                ];
+            }
+        }
+
         $userDetails = $usersJoinedGames->map(function ($usersJoinedGame) {
             $user = $usersJoinedGame->user;
             $userGameLogs = $usersJoinedGame->userGameLogs;
@@ -643,7 +671,7 @@ class GameController extends Controller
 
         });
 
-        return response()->json(['users' => $userDetails->toArray(), 'admin_earnings' => $adminEarnings, 'message' => 'success'], 200);
+        return response()->json(['users' => $userDetails->toArray(), 'admin_earnings' => $adminEarnings, 'message' => 'success' , 'result' => $result], 200);
     }
 
     public function announceResult(Request $request)
