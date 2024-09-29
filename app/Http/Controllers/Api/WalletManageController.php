@@ -28,8 +28,15 @@ class WalletManageController extends Controller
 
                 if ($dealer) {
                     if ($dealer->created_by === $user->id) {
-                        $dealer->deposit($rechargeAmount);
-                        return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $dealer->name, 'data' => $dealer], 200);
+                        if ($request->type == 'recharge') {
+                            $dealer->deposit($rechargeAmount);
+                            return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $dealer->name, 'data' => $dealer], 200);
+                        } elseif ($request->type == 'redeem') {
+                            $dealer->withdraw($rechargeAmount);
+                            return response()->json(['status' => 'success', 'message' => 'Wallet debited for user ' . $dealer->name, 'data' => $dealer], 200);
+                        } else {
+                            return response()->json(['status' => 'error', 'message' => 'Invalid type'], 400);
+                        }
                     } else {
                         return response()->json(['status' => 'error', 'message' => 'You have no access to recharge this user'], 400);
                     }
