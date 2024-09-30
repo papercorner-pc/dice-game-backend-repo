@@ -62,6 +62,85 @@ class UserController extends Controller
         if (!$user) {
             return response()->json(['message' => 'User not found'], 401);
         }
+
+        $allTransactions = collect();
+        $userRedeemTransactions = collect();
+
+        if ($user->is_super_admin == 1) {
+            $agentUsers = User::where('is_agent', 1)->get();
+
+            foreach ($agentUsers as $agent) {
+                $agentTransactions = $agent->transactions()
+                    ->where('meta', 'LIKE', '%'."Redeemed".'%')
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($transaction) use ($agent) {
+                        $transaction->user_name = $agent->name;
+                        $transaction->created_at = $transaction->created_at->setTimezone('Asia/Kolkata')->format('Y-m-d H:i:s');
+                        return $transaction;
+                    });
+                $allTransactions = $allTransactions->merge($agentTransactions);
+            }
+        }
+        elseif ($user->is_agent == 1) {
+            $agentCreatedUsers = User::where('created_by', $user->id)->get();
+
+            foreach ($agentCreatedUsers as $createdUser) {
+                $userTransactions = $createdUser->transactions()
+                    ->where('meta', 'LIKE', '%'."Redeemed".'%')
+                    ->orderBy('created_at', 'desc')
+                    ->get()
+                    ->map(function ($transaction) use ($createdUser) {
+                        $transaction->user_name = $createdUser->name;
+                        $transaction->created_at = $transaction->created_at->setTimezone('Asia/Kolkata')->format('Y-m-d H:i:s');
+                        return $transaction;
+                    });
+
+                $allTransactions = $allTransactions->merge($userTransactions);
+            }
+        }
+
+        $userRedeemTransactions = $user->transactions()
+            ->where('meta', 'LIKE', '%'."Redeemed".'%')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($transaction) use ($user) {
+                $transaction->user_name = $user->name;
+                $transaction->created_at = $transaction->created_at->setTimezone('Asia/Kolkata')->format('Y-m-d H:i:s');
+                return $transaction;
+            });
+
+        // Combine user's own redeem transactions and agent-created users' redeem transactions
+        // $allTransactions = $allTransactions->merge($userRedeemTransactions);
+
+        $generalTransactions = $user->transactions()
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($transaction) {
+                $transaction->created_at = $transaction->created_at->setTimezone('Asia/Kolkata')->format('Y-m-d H:i:s');
+                return $transaction;
+            });
+
+        // Merge created users redeem and user's own transactions into a single array
+        $mergedTransactions = $generalTransactions->merge($allTransactions);
+
+        return response()->json([
+            'transactions' => $mergedTransactions,
+            'user_own_redeem' => $userRedeemTransactions,
+            'balance' => $user->balance
+        ], 200);
+    }
+
+
+
+
+    public function walletHistoryOld()
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 401);
+        }
         $transactions = $user->transactions()
             ->orderBy('created_at', 'desc')
             ->get()
