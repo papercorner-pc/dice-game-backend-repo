@@ -796,16 +796,16 @@ class GameController extends Controller
             }
 
             if($user->is_agent == 1) {
-                $userGameList = UserGameJoin::where('game_id', $request->game_id)
+                $userGameList = UserGameJoin::with(['user'])->where('game_id', $request->game_id)
                     ->whereIn('user_id', $createdUsersId)
                     ->with('userGameLogs')
                     ->get();
             }else if($user->is_super_admin == 1){
-                $userGameList = UserGameJoin::where('game_id', $request->game_id)
+                $userGameList = UserGameJoin::with(['user'])->where('game_id', $request->game_id)
                     ->with('userGameLogs')
                     ->get();
             }else{
-                $userGameList = UserGameJoin::where('game_id', $request->game_id)
+                $userGameList = UserGameJoin::with(['user'])->where('game_id', $request->game_id)
                     ->where('user_id', $user->id)
                     ->with('userGameLogs')
                     ->get();
@@ -858,6 +858,7 @@ class GameController extends Controller
                             'id' => $userGame->id,
                             'joined_amount' => $userGame->joined_amount,
                             'selected_card' => $userGame->user_card,
+                            'user_name' => $userGame->user->name ?? '',
                             'game_earning' => $userGameLog->game_earning,
                         ];
                     }
@@ -866,6 +867,7 @@ class GameController extends Controller
                         'id' => $userGame->id,
                         'joined_amount' => $userGame->joined_amount,
                         'selected_card' => $userGame->user_card,
+                        'user_name' => $userGame->user->name ?? '',
                         'game_earning' => 0,
                     ];
                 }
