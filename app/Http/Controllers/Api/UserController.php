@@ -124,6 +124,8 @@ class UserController extends Controller
         // Merge created users redeem and user's own transactions into a single array
         $mergedTransactions = $generalTransactions->merge($allTransactions);
 
+        $sortedTransactions = $mergedTransactions->sortByDesc('created_at');
+
         return response()->json([
             'transactions' => $mergedTransactions,
             'user_own_redeem' => $userRedeemTransactions,

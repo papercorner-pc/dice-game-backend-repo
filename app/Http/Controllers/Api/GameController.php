@@ -1030,7 +1030,7 @@ class GameController extends Controller
         if($countDown){
             $updatedTime = $currentTime->addSeconds($countDown);
         }else{
-            $updatedTime = $currentTime;
+            $updatedTime = null;
         }
 
         $cardLimit = $game->symbol_limit;
