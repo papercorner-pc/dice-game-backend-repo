@@ -72,6 +72,7 @@ class UserController extends Controller
             foreach ($agentUsers as $agent) {
                 $agentTransactions = $agent->transactions()
                     ->where('meta', 'LIKE', '%'."Redeemed".'%')
+                    ->orWhere('meta', 'LIKE', '%'."Recharge".'%')
                     ->orderBy('created_at', 'desc')
                     ->get()
                     ->map(function ($transaction) use ($agent) {
@@ -88,6 +89,7 @@ class UserController extends Controller
             foreach ($agentCreatedUsers as $createdUser) {
                 $userTransactions = $createdUser->transactions()
                     ->where('meta', 'LIKE', '%'."Redeemed".'%')
+                    ->orWhere('meta', 'LIKE', '%'."Recharge".'%')
                     ->orderBy('created_at', 'desc')
                     ->get()
                     ->map(function ($transaction) use ($createdUser) {
@@ -102,6 +104,7 @@ class UserController extends Controller
 
         $userRedeemTransactions = $user->transactions()
             ->where('meta', 'LIKE', '%'."Redeemed".'%')
+            ->orWhere('meta', 'LIKE', '%'."Recharge".'%')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($transaction) use ($user) {
