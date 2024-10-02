@@ -29,7 +29,7 @@ class WalletManageController extends Controller
                 if ($dealer) {
                     if ($dealer->created_by === $user->id) {
                         if ($request->type == 'recharge') {
-                            $dealer->deposit($rechargeAmount);
+                            $dealer->deposit($rechargeAmount, ['Recharge']);
                             return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $dealer->name, 'data' => $dealer], 200);
                         } elseif ($request->type == 'redeem') {
                             $dealer->withdraw($rechargeAmount, ['Redeemed']);
@@ -241,7 +241,7 @@ class WalletManageController extends Controller
             if ($agent) {
                 if ($agent->created_by === $user->id) {
                     if ($request->type == 'recharge') {
-                        $agent->deposit($rechargeAmount);
+                        $agent->deposit($rechargeAmount, ['Recharge']);
                         return response()->json(['status' => 'success', 'message' => 'Wallet credited for user ' . $agent->name, 'data' => $agent], 200);
                     } elseif ($request->type == 'redeem') {
                         $agent->withdraw($rechargeAmount, ['Redeemed']);
@@ -302,11 +302,11 @@ class WalletManageController extends Controller
         $user = Auth::user();
         if ($user->is_super_admin == 1) {
             $list = AgentWalletRequest::with(['requestUser', 'forUser'])->where('request_to', $user->id)
-                ->where('status', 0)->orderBy('id', 'DESC')->get();
+                ->orderBy('id', 'DESC')->get();
             return response()->json(['status' => 'success', 'message' => 'data fetched success', 'data' => $list], 200);
         } else if ($user->is_agent == 1) {
             $list = DealerWalletRequest::with(['requestUser'])->where('request_to', $user->id)
-                ->where('status', 0)->orderBy('id', 'DESC')->get();
+                ->orderBy('id', 'DESC')->get();
             return response()->json(['status' => 'success', 'message' => 'data fetched success', 'data' => $list], 200);
         } else {
             return response()->json(['status' => 'error', 'message' => 'You have no access'], 400);

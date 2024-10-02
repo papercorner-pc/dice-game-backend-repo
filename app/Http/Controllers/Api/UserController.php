@@ -72,6 +72,7 @@ class UserController extends Controller
             foreach ($agentUsers as $agent) {
                 $agentTransactions = $agent->transactions()
                     ->where('meta', 'LIKE', '%'."Redeemed".'%')
+                    ->orWhere('meta', 'LIKE', '%'."Recharge".'%')
                     ->orderBy('created_at', 'desc')
                     ->get()
                     ->map(function ($transaction) use ($agent) {
@@ -88,6 +89,7 @@ class UserController extends Controller
             foreach ($agentCreatedUsers as $createdUser) {
                 $userTransactions = $createdUser->transactions()
                     ->where('meta', 'LIKE', '%'."Redeemed".'%')
+                    ->orWhere('meta', 'LIKE', '%'."Recharge".'%')
                     ->orderBy('created_at', 'desc')
                     ->get()
                     ->map(function ($transaction) use ($createdUser) {
@@ -102,6 +104,7 @@ class UserController extends Controller
 
         $userRedeemTransactions = $user->transactions()
             ->where('meta', 'LIKE', '%'."Redeemed".'%')
+            ->orWhere('meta', 'LIKE', '%'."Recharge".'%')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($transaction) use ($user) {
@@ -123,11 +126,10 @@ class UserController extends Controller
 
         // Merge created users redeem and user's own transactions into a single array
         $mergedTransactions = $generalTransactions->merge($allTransactions);
-
         $sortedTransactions = $mergedTransactions->sortByDesc('created_at');
 
         return response()->json([
-            'transactions' => $mergedTransactions,
+            'transactions' => $sortedTransactions,
             'user_own_redeem' => $userRedeemTransactions,
             'balance' => $user->balance
         ], 200);
