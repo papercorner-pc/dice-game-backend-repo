@@ -82,8 +82,7 @@ class UserController extends Controller
                     });
                 $allTransactions = $allTransactions->merge($agentTransactions);
             }
-        }
-        elseif ($user->is_agent == 1) {
+        } elseif ($user->is_agent == 1) {
             $agentCreatedUsers = User::where('created_by', $user->id)->get();
 
             foreach ($agentCreatedUsers as $createdUser) {
@@ -113,9 +112,6 @@ class UserController extends Controller
                 return $transaction;
             });
 
-        // Combine user's own redeem transactions and agent-created users' redeem transactions
-        // $allTransactions = $allTransactions->merge($userRedeemTransactions);
-
         $generalTransactions = $user->transactions()
             ->orderBy('created_at', 'desc')
             ->get()
@@ -124,16 +120,20 @@ class UserController extends Controller
                 return $transaction;
             });
 
-        // Merge created users redeem and user's own transactions into a single array
         $mergedTransactions = $generalTransactions->merge($allTransactions);
+
         $sortedTransactions = $mergedTransactions->sortByDesc('created_at');
 
+        $sortedArray = array_values($sortedTransactions->toArray());
+        $userRedeemArray = array_values($userRedeemTransactions->toArray());
+
         return response()->json([
-            'transactions' => $sortedTransactions,
-            'user_own_redeem' => $userRedeemTransactions,
+            'transaction' => $sortedArray,  
+            'user_own_redeem' => $userRedeemArray,
             'balance' => $user->balance
         ], 200);
     }
+
 
 
 
