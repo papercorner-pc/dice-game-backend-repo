@@ -1025,15 +1025,8 @@ class GameController extends Controller
             return response()->json(['error' => 'Game not found'], 400);
         }
 
-        $countDown = (int)$game->gameLog->countdown;
+        $countDown = $game->gameLog->countdown;
         $countDownStatus = $game->gameLog->countdown_status;
-        $currentTime = Carbon::now();
-
-        if($countDown){
-            $updatedTime = $currentTime->addSeconds($countDown);
-        }else{
-            $updatedTime = null;
-        }
 
         $cardLimit = $game->symbol_limit;
         $usersGameJoins = UserGameJoin::where('game_id', $gameId)->where('user_id', $user->id)->get();
@@ -1057,7 +1050,7 @@ class GameController extends Controller
             'game_id' => $gameId,
             'card_limit' => $cardLimit,
             'balances' => $balanceList,
-            'countdown' => $updatedTime,
+            'countdown' => $countDown,
             'countdown_status' => $countDownStatus
         ]);
     }
@@ -1107,6 +1100,13 @@ class GameController extends Controller
         $gameId = $request->game_id;
         $countdown = $request->countdown;
 
+        $currentTime = Carbon::now();
+        if($countdown){
+            $updatedTime = $currentTime->addSeconds($countdown);
+        }else{
+            $updatedTime = null;
+        }
+
         if (!$countdown) {
             return response()->json(['error' => 'Countdown Required'], 400);
         }
@@ -1117,7 +1117,7 @@ class GameController extends Controller
         }
         $gameStatusLog = GameStatusLog::where('game_id', $gameId)->first();
         if ($gameStatusLog) {
-            $gameStatusLog->countdown = $countdown;
+            $gameStatusLog->countdown = $updatedTime;
             $gameStatusLog->save();
             return response()->json(['success' => 'Countdown added successfully', 'data' => $game], 200);
 
